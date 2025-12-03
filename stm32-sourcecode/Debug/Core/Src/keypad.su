@@ -1,0 +1,6 @@
+keypad.c:38:23:KeyIndex	16	static
+keypad.c:46:6:Keypad_Init	24	static
+keypad.c:74:6:Keypad_Scan	40	static
+keypad.c:164:6:Keypad_GetChar	4	static
+keypad.c:174:6:Keypad_GetPreview	4	static
+keypad.c:179:6:Keypad_ForceFinalize	4	static

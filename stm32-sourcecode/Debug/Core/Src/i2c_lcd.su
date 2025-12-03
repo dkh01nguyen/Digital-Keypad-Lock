@@ -1,0 +1,7 @@
+i2c_lcd.c:16:6:lcd_send_cmd	32	static
+i2c_lcd.c:38:6:lcd_send_data	32	static
+i2c_lcd.c:59:6:lcd_clear	24	static
+i2c_lcd.c:79:6:lcd_gotoxy	32	static
+i2c_lcd.c:100:6:lcd_init	16	static
+i2c_lcd.c:130:6:lcd_puts	16	static
+i2c_lcd.c:141:6:lcd_putchar	16	static
