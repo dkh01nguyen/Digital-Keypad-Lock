@@ -82,8 +82,8 @@ void Error_Handler(void);
 #define BUZZER_GPIO_Port GPIOB
 #define RELAY_Pin GPIO_PIN_1
 #define RELAY_GPIO_Port GPIOB
-#define LEED_GREEN_Pin GPIO_PIN_3
-#define LEED_GREEN_GPIO_Port GPIOB
+#define LED_GREEN_Pin GPIO_PIN_3
+#define LED_GREEN_GPIO_Port GPIOB
 #define LED_RED_Pin GPIO_PIN_4
 #define LED_RED_GPIO_Port GPIOB
 /* USER CODE BEGIN Private defines */

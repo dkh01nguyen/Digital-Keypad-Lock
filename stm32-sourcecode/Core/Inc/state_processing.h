@@ -1,8 +1,8 @@
 /*
  * state_processing.h
  *
- *  Created on: Nov 20, 2025
- *      Author: nguye
+ * Created on: Nov 20, 2025
+ * Author: nguye
  */
 
 #ifndef INC_STATE_PROCESSING_H_
@@ -10,39 +10,78 @@
 
 /**
  * @file state_processing.h
- * @brief State machine module
+ * @brief State machine module (FSM) core logic.
  *
  * Notes:
- *  - All global variables (e.g., gSystemState, gSystemTimers) are declared in global.h
- *  - Input events come from input_processing (via gKeyEvent or State_Event_* calls)
- *  - Output updates via gOutputStatus
+ * - FSM uses global structures (gInputState, gKeyEvent) for input events.
+ * - FSM updates global output status (gOutputStatus) and timers (gSystemTimers, timer_flag).
  */
 
 #include <stdint.h>
 #include <stdbool.h>
+#include "global.h" // Primary dependency for all shared structs/defines
 
-/* Initialize state machine. Call after Input_Init() and Output_Init(). */
+/* Initialize state machine. Sets initial state to LOCKED_SLEEP. */
 void State_Init(void);
 
-/* Periodic handler — call by scheduler every 10ms */
+/**
+ * @brief Periodic handler, the core FSM loop.
+ * Must be called by the scheduler every 10ms.
+ */
 void State_Process(void);
 
-/* Event helpers for external triggers (optional calls from input_processing) */
-void State_Event_KeypadChar(char c);      /* immediate event for key char */
-void State_Event_IndoorButton(void);
+/* --- Event handlers for discrete triggers (called by input_processing) --- */
+
+/**
+ * @brief Posts a regular keypad character event to the FSM mailbox.
+ */
+void State_Event_KeypadChar(char c);
+
+/**
+ * @brief Posts a long-press keypad character event (used for Enter '#').
+ */
+void State_Event_KeypadChar_Long(char c);
+
+/**
+ * @brief Posts a long-press event from the Indoor Unlock Button.
+ */
+void State_Event_IndoorButton_Long(void);
+
+/**
+ * @brief Posts an edge event indicating the Mechanical Key was used.
+ */
 void State_Event_KeySensor(void);
+
+/**
+ * @brief Posts an edge event indicating the Door Sensor was released (Door is Open).
+ */
 void State_Event_DoorSensor_Open(void);
+
+/**
+ * @brief Posts an edge event indicating the Door Sensor was pressed (Door is Closed).
+ */
 void State_Event_DoorSensor_Close(void);
 
-/* Password api */
+/* --- Password API --- */
+
+/**
+ * @brief Sets and saves the new system password (must be PASSWORD_LENGTH).
+ */
 bool State_SetPassword(const char *newPass);
+
+/**
+ * @brief Retrieves the current password.
+ */
 const char* State_GetPassword(void);
 
-/* Query state */
+/**
+ * @brief Returns the current FSM state.
+ */
 uint8_t State_GetState(void);
 
-/* Debug/force */
+/**
+ * @brief Forces the FSM to UNLOCKED_WAITOPEN state (for debugging/testing).
+ */
 void State_ForceUnlock(void);
 
 #endif /* INC_STATE_PROCESSING_H_ */
-

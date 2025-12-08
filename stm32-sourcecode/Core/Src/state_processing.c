@@ -1,30 +1,33 @@
 /*
  * state_processing.c
  *
- *  Created on: Nov 20, 2025
- *      Author: nguye
+ * Created on: Nov 20, 2025
+ * Author: nguye
+ * Description: Implements the 14-state Finite State Machine (FSM) logic.
  */
 #include "state_processing.h"
 #include "global.h"
 #include "kmp.h"
-#include "i2c_lcd.h"
-#include "stm32f1xx_hal.h"
+#include "main.h"
+#include "timer.h"
 #include <string.h>
 #include <stdio.h>
 
+// --- Logic Constants and Variables ---
 
-/* penalty durations in minutes (sequence 1, 5, 25, 125) */
 static const uint32_t penalty_minutes[] = { 1, 5, 25, 125 };
 static const uint8_t penalty_levels = sizeof(penalty_minutes) / sizeof(penalty_minutes[0]);
+static uint16_t inputLen;
 
-/* entry buffer settings */
-#define ENTRY_BUFFER_MAX  64  /* allow 4..20 per requirements; but keep room */
+#define WARNING_DURATION_MS     3000
+#define INACTIVITY_TIMEOUT_MS   30000
+#define RELOCK_WINDOW_MS        10000
+#define DOOR_OPEN_MAX_MS        30000
+#define ALARM_REPEAT_MS         (5U * 60U * 1000U)
+#define BUZZER_DURATION_MS      10000
 
-/* internal buffers */
-static char entryBuffer[ENTRY_BUFFER_MAX + 1];
-static uint16_t entryLen;
+// --- Helper Functions ---
 
-/* helper to set LCD lines conveniently */
 static void setLCD(const char *l1, const char *l2)
 {
     if (l1) {
@@ -37,439 +40,423 @@ static void setLCD(const char *l1, const char *l2)
     }
 }
 
-/* helper to start penalty for current penaltyLevel */
 static void start_penalty(uint8_t level)
 {
     if (level == 0) return;
     uint32_t minutes = penalty_minutes[(level - 1) < penalty_levels ? (level - 1) : (penalty_levels - 1)];
     uint32_t ms = minutes * 60U * 1000U;
+
     gSystemTimers.penaltyLevel = level;
-    gSystemTimers.penaltyEndTick = HAL_GetTick() + ms;
-    /* buzzer initial 10s beep */
+    gSystemTimers.penaltyEndTick = HAL_GetTick() + ms; // Long duration timer
     gOutputStatus.buzzer = BUZZER_ON;
-    /* TODO: better buzzer pattern handling */
+    setTimer(BUZZER_TASK_ID, BUZZER_DURATION_MS); // 10s buzzer
 }
 
-/* helper to clear entry */
-static void entry_clear(void)
+static void input_clear(void)
 {
-    entryLen = 0;
-    entryBuffer[0] = '\0';
+    inputLen = 0;
+    inputBuffer[0] = '\0';
 }
 
-/* helper to append char to entry buffer (if space) */
-static void entry_append(char c)
+static void input_append(char c)
 {
-    if (entryLen < ENTRY_BUFFER_MAX) {
-        entryBuffer[entryLen++] = c;
-        entryBuffer[entryLen] = '\0';
+    if ((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F'))
+    {
+        if (inputLen < MAX_INPUT_LENGTH) {
+            inputBuffer[inputLen++] = c;
+            inputBuffer[inputLen] = '\0';
+        }
     }
 }
 
-/* helper to replace last char (used by double-press replace) */
-void State_Event_ReplaceLastChar(char newChar)
+static bool verify_password()
 {
-    if (entryLen == 0) {
-        entry_append(newChar);
-    } else {
-        entryBuffer[entryLen - 1] = newChar;
-    }
-    /* update LCD preview */
-    char disp1[17]; memset(disp1, ' ', 16); disp1[16] = '\0';
-    for (int i = 0; i < (int)entryLen && i < 16; ++i) disp1[i] = entryBuffer[i];
-    setLCD(disp1, "");
+    size_t len = inputLen;
+    if (len < PASSWORD_LENGTH || len > MAX_INPUT_LENGTH) return false;
+    return KMP_FindPassword((const uint8_t*)inputBuffer, (uint16_t)len);
 }
 
-/* ---------- API implementations ---------- */
+// Hàm check_battery ĐÃ ĐƯỢC XÓA khỏi FSM.
 
+// --- FSM API Implementations ---
+
+/**
+ * @brief Initializes the FSM state and global variables.
+ */
 void State_Init(void)
 {
     gSystemState.currentState = LOCKED_SLEEP;
     gSystemTimers.failedAttempts = 0;
     gSystemTimers.penaltyLevel = 0;
     gSystemTimers.penaltyEndTick = 0;
-    gSystemTimers.unlockExpireTick = 0;
     gSystemTimers.alarmRepeatTick = 0;
 
-    /* reset outputs */
+    // Output DO for LOCKED_SLEEP
     gOutputStatus.solenoid = SOLENOID_LOCKED;
-    gOutputStatus.ledRed = LED_ON;
+    gOutputStatus.ledRed = LED_OFF;
     gOutputStatus.ledGreen = LED_OFF;
     gOutputStatus.buzzer = BUZZER_OFF;
-    setLCD("System Ready","");
-
-    entry_clear();
-    memset(gPassword, 0, MAX_PASSWORD_LENGTH + 1);
-    /* default password can be set elsewhere */
+    input_clear();
 }
 
-/* helper: check battery (simple threshold) */
-static void check_battery(void)
-{
-    /* TODO: implement ADC reading mapping; for now use gInputState.batteryADC */
-    if (gInputState.batteryADC < 1000) {
-        gInputState.batteryLow = 1;
-    } else {
-        gInputState.batteryLow = 0;
-    }
-}
-
-/* Verify entry buffer against password using KMP: password must appear continuous */
-static bool verify_password()
-{
-    size_t len = entryLen;
-    if (len < 4 || len > 20) return false; /* callers should check format first */
-    return KMP_FindPassword((const uint8_t*)entryBuffer, (uint16_t)len, (const uint8_t*)gPassword);
-}
-
-/* Called every 10ms */
+/**
+ * @brief The main periodic FSM processing loop.
+ */
 void State_Process(void)
 {
     uint32_t now = HAL_GetTick();
 
-    /* Handle penalty expiration */
-    if (gSystemTimers.penaltyEndTick != 0 && gSystemTimers.penaltyEndTick != UINT32_MAX) {
-        if ((int32_t)(gSystemTimers.penaltyEndTick - now) <= 0) {
-            /* penalty ended */
-            gSystemTimers.penaltyLevel = 0;
-            gSystemTimers.penaltyEndTick = 0;
-            gOutputStatus.buzzer = BUZZER_OFF;
+    // --- Global Timer and Event Consumption ---
+
+    // 1. Buzzer OFF after 10s timer expires
+    if (timer_flag[BUZZER_TASK_ID] == 1) {
+        gOutputStatus.buzzer = BUZZER_OFF;
+        timer_flag[BUZZER_TASK_ID] = 0;
+    }
+
+    // 2. Penalty Timer Expiration
+    if (gSystemState.currentState == PENALTY_TIMER) {
+        if (gSystemTimers.penaltyEndTick != 0 && gSystemTimers.penaltyEndTick != UINT32_MAX) {
+            if ((int32_t)(gSystemTimers.penaltyEndTick - now) <= 0) {
+                gSystemTimers.penaltyEndTick = 0;
+                gSystemState.currentState = LOCKED_ENTRY;
+                input_clear();
+                setTimer(ENTRY_TIMEOUT_ID, INACTIVITY_TIMEOUT_MS);
+                return;
+            }
         }
     }
 
+    // 3. Consume Input Event
+    char key_char = gKeyEvent.keyChar;
+    uint8_t is_long = gKeyEvent.isLong;
+    gKeyEvent.keyChar = 0;
+    gKeyEvent.isLong = 0;
+
+    // 4. Handle Immediate Transitions (Mechanical Key / Long Press Indoor)
+
+    // Mechanical Key Override
+    if (gInputState.keySensor) {
+        if (gSystemState.currentState <= LOCKED_VERIFY || gSystemState.currentState == PENALTY_TIMER || gSystemState.currentState == PERMANENT_LOCKOUT) {
+             gSystemState.currentState = UNLOCKED_WAITOPEN;
+             setTimer(UNLOCK_WINDOW_ID, RELOCK_WINDOW_MS); // 10s window
+             gSystemTimers.penaltyEndTick = 0;
+             gSystemTimers.failedAttempts = 0;
+             return;
+        }
+    }
+
+    // Long Press Indoor Button
+    if (gInputState.indoorButton) {
+        if (gSystemState.currentState == UNLOCKED_DOOROPEN || gSystemState.currentState == UNLOCKED_WAITCLOSE) {
+            gSystemState.currentState = UNLOCKED_ALWAYSOPEN;
+            gInputState.indoorButton = 0; // Consume event
+            return;
+        } else if (gSystemState.currentState == UNLOCKED_ALWAYSOPEN) {
+            gSystemState.currentState = UNLOCKED_WAITCLOSE;
+            setTimer(UNLOCK_WINDOW_ID, RELOCK_WINDOW_MS); // Start 10s relock
+            gInputState.indoorButton = 0; // Consume event
+            return;
+        }
+    }
+
+    // --- FSM SWITCH-CASE (14 STATES) ---
+
     switch (gSystemState.currentState) {
+
         case LOCKED_SLEEP:
-            /* Do: screen off, solenoid locked. Wait for input. */
+            // DO: Solenoid Lock, LED OFF, Buzzer OFF.
             gOutputStatus.solenoid = SOLENOID_LOCKED;
-            gOutputStatus.ledRed = LED_ON;
+            gOutputStatus.ledRed = LED_OFF;
             gOutputStatus.ledGreen = LED_OFF;
-            /* If keypad input or indoor key sensor (override), wake up */
-            if (gKeyEvent.keyChar != 0 || gInputState.indoorButton || gInputState.keySensor) {
-                gSystemState.currentState = LOCKED_WAKEUP;
-            }
+            gOutputStatus.buzzer = BUZZER_OFF;
+            // Transitions: Handled by immediate logic (key_char != 0 or gInputState.keySensor)
             break;
 
         case LOCKED_WAKEUP:
-            /* Do: show screen, red LED, check battery */
-            setLCD("Enter password","");
-            check_battery();
+            // DO: LED Red ON, Solenoid Lock.
+            gOutputStatus.solenoid = SOLENOID_LOCKED;
+            gOutputStatus.ledRed = LED_ON;
+
+            // Transitions:
+            // Pin yếu? (Kiểm tra cờ đã được Input_Process cập nhật)
             if (gInputState.batteryLow) {
                 gSystemState.currentState = BATTERY_WARNING;
-                /* record start time */
-                gSystemTimers.unlockExpireTick = now + 3000; /* show for 3s */
+                setTimer(WARNING_TASK_ID, WARNING_DURATION_MS); // 3s
             } else {
                 gSystemState.currentState = LOCKED_ENTRY;
-                /* prepare entry */
-                entry_clear();
-                setLCD("Enter password","");
+                input_clear();
+                setTimer(ENTRY_TIMEOUT_ID, INACTIVITY_TIMEOUT_MS); // 30s
             }
             break;
 
         case BATTERY_WARNING:
-            /* show warning for 3s */
-            setLCD("Battery Low!","Please replace");
-            if ((int32_t)(gSystemTimers.unlockExpireTick - now) <= 0) {
+            // DO: LED Red ON, Solenoid Lock.
+            gOutputStatus.solenoid = SOLENOID_LOCKED;
+            gOutputStatus.ledRed = LED_ON;
+            // Transitions:
+            if (timer_flag[WARNING_TASK_ID] == 1) { // After 3s
+                timer_flag[WARNING_TASK_ID] = 0;
                 gSystemState.currentState = LOCKED_ENTRY;
-                entry_clear();
-                setLCD("Enter password","");
+                input_clear();
+                setTimer(ENTRY_TIMEOUT_ID, INACTIVITY_TIMEOUT_MS); // 30s timeout
             }
             break;
 
         case LOCKED_ENTRY:
-            /* Do: show entry screen and capture keys */
-            /* Append characters until Enter '#' */
-            if (gKeyEvent.keyChar != 0) {
-                char k = gKeyEvent.keyChar;
-                gKeyEvent.keyChar = 0; /* consume */
-                if (k == '*') {
-                    /* backspace */
-                    if (entryLen > 0) { entryLen--; entryBuffer[entryLen] = '\0'; }
-                } else if (k == '#') {
-                    /* go to verify */
-                    gSystemState.currentState = LOCKED_VERIFY;
-                } else {
-                    /* append (only allow 0-9, A-F) */
-                    if (entryLen < ENTRY_BUFFER_MAX) {
-                        entry_append(k);
-                    }
-                }
-                /* update display preview (first line) */
-                char disp[17]; memset(disp, ' ', 16); disp[16] = '\0';
-                for (int i = 0; i < (int)entryLen && i < 16; ++i) disp[i] = entryBuffer[i];
-                setLCD(disp, "");
-                /* reset entry timeout? optional */
-            }
+            // DO: LED Red ON, Solenoid Lock.
+            gOutputStatus.solenoid = SOLENOID_LOCKED;
+            gOutputStatus.ledRed = LED_ON;
 
-            /* If no input for 30s -> go back to sleep */
-            /* use unlockExpireTick as inactivity timer */
-            if (gSystemTimers.unlockExpireTick == 0) {
-                gSystemTimers.unlockExpireTick = now + 30000;
-            } else if ((int32_t)(gSystemTimers.unlockExpireTick - now) <= 0) {
-                gSystemTimers.unlockExpireTick = 0;
-                gSystemState.currentState = LOCKED_SLEEP;
-                setLCD("",""); /* turn off screen */
+            // Transitions:
+            if (timer_flag[ENTRY_TIMEOUT_ID] == 1) { // Timeout 30s
+                timer_flag[ENTRY_TIMEOUT_ID] = 0;
+                gSystemState.currentState = LOCKED_RELOCK;
+            }
+            else if (key_char == '#') { // Press Enter
+                gSystemState.currentState = LOCKED_VERIFY;
+            }
+            else if (key_char != 0) { // Input handling
+                if (key_char == '*') { // backspace
+                    if (inputLen > 0) { inputLen--; inputBuffer[inputLen] = '\0'; }
+                } else { // append
+                    input_append(key_char);
+                }
+                setTimer(ENTRY_TIMEOUT_ID, INACTIVITY_TIMEOUT_MS); // reset timer
             }
             break;
 
         case LOCKED_VERIFY:
-            /* Do: check format length and verify */
-            if (entryLen < 4 || entryLen > 20) {
-                setLCD("Invalid input","4..20 chars");
-                /* do not increment failedAttempts; return to entry */
-                /* show for 2s */
-                gSystemTimers.unlockExpireTick = now + 2000;
-                gSystemState.currentState = LOCKED_ENTRY; /* go back to entry after message */
+            // DO: Solenoid Lock, LED Red.
+            // Transitions & logic:
+            if (inputLen < PASSWORD_LENGTH || inputLen > MAX_INPUT_LENGTH) {
+                // Lỗi định dạng (3s warning)
+                setTimer(WARNING_TASK_ID, WARNING_DURATION_MS);
+                gSystemState.currentState = BATTERY_WARNING;
+                input_clear();
+            } else if (verify_password()) {
+                // Success
+                gSystemState.currentState = UNLOCKED_WAITOPEN;
+                setTimer(UNLOCK_WINDOW_ID, RELOCK_WINDOW_MS); // 10s window
+                gSystemTimers.failedAttempts = 0;
             } else {
-                /* verify using KMP: password must appear continuous in entry */
-                if (verify_password()) {
-                    /* success */
-                    gSystemState.currentState = UNLOCKED_WAITOPEN;
-                    gOutputStatus.solenoid = SOLENOID_UNLOCKED;
-                    gOutputStatus.ledGreen = LED_ON;
-                    gOutputStatus.ledRed = LED_OFF;
-                    setLCD("Authentication","Success");
-                    /* start 10s open window */
-                    gSystemTimers.unlockExpireTick = now + 10000;
-                    /* reset failure count */
-                    gSystemTimers.failedAttempts = 0;
-                } else {
-                    /* failure */
-                    gSystemTimers.failedAttempts++;
-                    /* check if multiple of 3 */
-                    if ((gSystemTimers.failedAttempts % 3) == 0) {
-                        if (gSystemTimers.failedAttempts >= 15) {
-                            /* permanent lockout */
-                            gSystemState.currentState = PERMANENT_LOCKOUT;
-                            /* buzzer initial 10s */
-                            gOutputStatus.buzzer = BUZZER_ON;
-                            /* lock keyboard until key used */
-                            gSystemTimers.penaltyEndTick = UINT32_MAX; /* represent permanent */
-                        } else {
-                            /* escalate penalty: compute level = floor(failed/3) */
-                            uint8_t level = (uint8_t)(gSystemTimers.failedAttempts / 3);
-                            if (level == 0) level = 1;
-                            if (level > penalty_levels) level = penalty_levels;
-                            start_penalty(level);
-                            gSystemState.currentState = PENALTY_TIMER;
-                        }
+                // Failure
+                gSystemTimers.failedAttempts++;
+                input_clear();
+
+                if ((gSystemTimers.failedAttempts % 3) == 0) { // Multiple of 3
+                    if (gSystemTimers.failedAttempts >= 15) {
+                        gSystemState.currentState = PERMANENT_LOCKOUT;
+                        gSystemTimers.penaltyEndTick = UINT32_MAX;
+                        gOutputStatus.buzzer = BUZZER_ON;
+                        setTimer(BUZZER_TASK_ID, BUZZER_DURATION_MS);
                     } else {
-                        /* normal failure: notify and return to entry */
-                        char msg1[17];
-                        snprintf(msg1, sizeof(msg1), "Wrong! Att:%u", (unsigned)gSystemTimers.failedAttempts);
-                        setLCD("Authentication", msg1);
-                        /* short delay then back to entry */
-                        gSystemTimers.unlockExpireTick = now + 2000;
-                        gSystemState.currentState = LOCKED_ENTRY;
+                        uint8_t level = (uint8_t)(gSystemTimers.failedAttempts / 3);
+                        if (level == 0) level = 1;
+                        if (level > penalty_levels) level = penalty_levels;
+                        start_penalty(level); // Activate penalty and buzzer
+                        gSystemState.currentState = PENALTY_TIMER;
                     }
+                } else {
+                    // Normal failure (3s warning)
+                    setTimer(WARNING_TASK_ID, WARNING_DURATION_MS);
+                    gSystemState.currentState = BATTERY_WARNING;
                 }
             }
-            /* clear entry buffer */
-            entry_clear();
             break;
 
         case PENALTY_TIMER:
-            /* Do: disable keyboard, buzzer for 10s initial, show message blocked */
-            setLCD("Keypad disabled","Penalty active");
-            /* during penalty, keypad input should be ignored (input_processing should not post keys),
-               here we monitor if mechanical key used to bypass */
-            if (gSystemTimers.penaltyEndTick != 0 && gSystemTimers.penaltyEndTick != UINT32_MAX) {
-                if ((int32_t)(gSystemTimers.penaltyEndTick - now) <= 0) {
-                    /* penalty expired */
-                    gSystemTimers.penaltyLevel = 0;
-                    gSystemTimers.penaltyEndTick = 0;
-                    gOutputStatus.buzzer = BUZZER_OFF;
-                    gSystemState.currentState = LOCKED_ENTRY;
-                    setLCD("Enter password","");
-                }
-            }
-            /* allow mechanical override */
-            if (gInputState.keySensor) {
-                gSystemState.currentState = UNLOCKED_WAITOPEN;
-                gOutputStatus.solenoid = SOLENOID_UNLOCKED;
-                setLCD("Unlocked","By Key");
-            }
+            // DO: Solenoid Lock, LED Red, Buzzer ON.
+            gOutputStatus.solenoid = SOLENOID_LOCKED;
+            gOutputStatus.ledRed = LED_ON;
+            gOutputStatus.buzzer = BUZZER_ON;
+            // Transitions: Handled by global logic (Penalty end) or immediate logic (Key Sensor)
             break;
 
         case PERMANENT_LOCKOUT:
-            setLCD("Permanently Locked","Use Mechanical Key");
-            gOutputStatus.buzzer = BUZZER_ON; /* initial beep performed earlier */
-            /* only exit when mechanical key used */
-            if (gInputState.keySensor) {
-                gSystemState.currentState = UNLOCKED_WAITOPEN;
-                gOutputStatus.solenoid = SOLENOID_UNLOCKED;
-                gOutputStatus.buzzer = BUZZER_OFF;
-                setLCD("Unlocked","By Key");
-            }
+            // DO: Solenoid Lock, LED Red, Buzzer ON.
+            gOutputStatus.solenoid = SOLENOID_LOCKED;
+            gOutputStatus.ledRed = LED_ON;
+            gOutputStatus.buzzer = BUZZER_ON;
+            // Transitions: Handled by immediate logic (Key Sensor)
             break;
 
         case UNLOCKED_WAITOPEN:
-            /* Solenoid is open, start 10s timer (set earlier) */
-            if ((int32_t)(gSystemTimers.unlockExpireTick - now) <= 0) {
-                /* auto re-lock */
+            // DO: Solenoid UNLOCK, LED Green.
+            gOutputStatus.solenoid = SOLENOID_UNLOCKED;
+            gOutputStatus.ledGreen = LED_ON;
+
+            // Transitions:
+            if (gInputState.doorSensor == 0) { // Door opens
+                gSystemState.currentState = UNLOCKED_DOOROPEN;
+                setTimer(UNLOCK_WINDOW_ID, DOOR_OPEN_MAX_MS); // 30s door open limit
+            }
+            else if (timer_flag[UNLOCK_WINDOW_ID] == 1) { // End of 10s window
+                timer_flag[UNLOCK_WINDOW_ID] = 0;
                 gSystemState.currentState = LOCKED_RELOCK;
             }
-            /* If door opened (microswitch released) */
-            if (gInputState.doorSensor == 0) { /* assuming 0 = open per your wiring */
-                gSystemState.currentState = UNLOCKED_DOOROPEN;
-                /* start 30s close timer */
-                gSystemTimers.unlockExpireTick = now + 30000;
+            else if (key_char == '#' && is_long) { // Long press Enter (#)
+                gSystemState.currentState = UNLOCKED_SETPASSWORD;
+                input_clear();
+                setTimer(ENTRY_TIMEOUT_ID, INACTIVITY_TIMEOUT_MS); // 30s timeout
             }
-            /* long enter (maybe set password) handled by input events: if '*' or specific long enter use case,
-               leave implementation for Unlocked_SetPassword when Enter pressed >1s */
             break;
 
         case UNLOCKED_SETPASSWORD:
-            /* allow user to enter new password (must be exactly 4 characters) */
-            /* We'll accept 4-char entry then update gPassword */
-            /* For simplicity, reuse entryBuffer: */
-            if (gKeyEvent.keyChar != 0) {
-                char k = gKeyEvent.keyChar;
-                gKeyEvent.keyChar = 0;
-                if (k == '#') {
-                    /* finalize setting */
-                    if (entryLen == 4) {
-                        memcpy(gPassword, entryBuffer, 4);
-                        gPassword[4] = '\0';
-                        setLCD("Password set","Saved");
-                        gSystemState.currentState = LOCKED_RELOCK;
-                        gOutputStatus.solenoid = SOLENOID_LOCKED;
-                    } else {
-                        setLCD("Password error","Must be 4 chars");
-                    }
-                    entry_clear();
-                } else if (k == '*') {
-                    if (entryLen > 0) { entryLen--; entryBuffer[entryLen] = '\0'; }
-                } else {
-                    if (entryLen < 20) entry_append(k);
-                }
+            // DO: Solenoid UNLOCK, LED Green.
+            gOutputStatus.solenoid = SOLENOID_UNLOCKED;
+            gOutputStatus.ledGreen = LED_ON;
+
+            // Transitions:
+            if (timer_flag[ENTRY_TIMEOUT_ID] == 1) { // Timeout 30s
+                timer_flag[ENTRY_TIMEOUT_ID] = 0;
+                gSystemState.currentState = UNLOCKED_WAITOPEN;
+                setTimer(UNLOCK_WINDOW_ID, RELOCK_WINDOW_MS); // 10s window
             }
-            /* show preview */
-            {
-                char disp[17]; memset(disp, ' ', 16);
-                for (int i = 0; i < (int)entryLen && i < 16; ++i) disp[i] = entryBuffer[i];
-                setLCD("Set New Password", disp);
+            else if (key_char != 0) { // Input handling
+                if (key_char == '#') { // Enter (confirm)
+                    if (inputLen == PASSWORD_LENGTH) {
+                        State_SetPassword(inputBuffer);
+                        gSystemState.currentState = LOCKED_RELOCK;
+                    } else {
+                        // Format error (3s warning)
+                        setTimer(WARNING_TASK_ID, WARNING_DURATION_MS);
+                        gSystemState.currentState = BATTERY_WARNING;
+                    }
+                    input_clear();
+                } else if (key_char == '*') { // Backspace
+                    if (inputLen > 0) { inputLen--; inputBuffer[inputLen] = '\0'; }
+                } else { // Append (limit to 4 characters)
+                    if (inputLen < PASSWORD_LENGTH) input_append(key_char);
+                }
+                setTimer(ENTRY_TIMEOUT_ID, INACTIVITY_TIMEOUT_MS); // reset timer
             }
             break;
 
         case UNLOCKED_DOOROPEN:
-            /* door is open, wait for close or timeout */
+            // DO: Solenoid UNLOCK, LED Green.
             gOutputStatus.solenoid = SOLENOID_UNLOCKED;
             gOutputStatus.ledGreen = LED_ON;
-            if (gInputState.doorSensor == 1) { /* closed */
-                /* door closed */
-                /* if indoor button pressed > 1s, possibly go to always open (handled elsewhere) */
+
+            // Transitions:
+            if (gInputState.doorSensor == 1) { // Door closes
+                // Long Press Indoor Button (handled by immediate logic)
                 gSystemState.currentState = UNLOCKED_WAITCLOSE;
-                gSystemTimers.unlockExpireTick = now + 10000; /* 10s to re-lock */
-            } else {
-                /* still open, check 30s max */
-                if ((int32_t)(gSystemTimers.unlockExpireTick - now) <= 0) {
-                    /* alarm forgot close */
-                    gSystemState.currentState = ALARM_FORGOTCLOSE;
-                    gSystemTimers.alarmRepeatTick = now + (5U * 60U * 1000U); /* repeat every 5 minutes */
-                }
+                setTimer(UNLOCK_WINDOW_ID, RELOCK_WINDOW_MS); // 10s relock timer
+            }
+            else if (timer_flag[UNLOCK_WINDOW_ID] == 1) { // End of 30s door open limit
+                timer_flag[UNLOCK_WINDOW_ID] = 0;
+                gSystemState.currentState = ALARM_FORGOTCLOSE;
+                gSystemTimers.alarmRepeatTick = now + ALARM_REPEAT_MS; // 5 minute repeat
+                gOutputStatus.buzzer = BUZZER_ON;
+                setTimer(BUZZER_TASK_ID, BUZZER_DURATION_MS);
             }
             break;
 
         case ALARM_FORGOTCLOSE:
-            /* buzzer 10s then repeat every 5 minutes */
+            // DO: Solenoid UNLOCK, LED Green, Buzzer ON.
+            gOutputStatus.solenoid = SOLENOID_UNLOCKED;
+            gOutputStatus.ledGreen = LED_ON;
             gOutputStatus.buzzer = BUZZER_ON;
-            setLCD("Close door!","");
-            /* simple: after 10s turn buzzer off; repeat managed by alarmRepeatTick */
-            /* Use unlockExpireTick as alarm end tick */
-            if (gSystemTimers.alarmRepeatTick != 0 && (int32_t)(gSystemTimers.alarmRepeatTick - now) <= 0) {
-                /* beep again and schedule next */
-                /* for simplicity, just update next repeat */
-                gSystemTimers.alarmRepeatTick = now + (5U * 60U * 1000U);
-            }
-            if (gInputState.doorSensor == 1) {
+
+            // Transitions:
+            if (gInputState.doorSensor == 1) { // Door closes
                 gSystemState.currentState = UNLOCKED_WAITCLOSE;
-                gOutputStatus.buzzer = BUZZER_OFF;
+                setTimer(UNLOCK_WINDOW_ID, RELOCK_WINDOW_MS);
+            }
+            else if ((int32_t)(gSystemTimers.alarmRepeatTick - now) <= 0) { // Repeat alarm every 5 min
+                 gSystemTimers.alarmRepeatTick = now + ALARM_REPEAT_MS;
+                 gOutputStatus.buzzer = BUZZER_ON; // Activate buzzer again
+                 setTimer(BUZZER_TASK_ID, BUZZER_DURATION_MS);
             }
             break;
 
         case UNLOCKED_WAITCLOSE:
+            // DO: Solenoid UNLOCK, LED Green.
             gOutputStatus.solenoid = SOLENOID_UNLOCKED;
-            /* start 10s relock timer */
-            if ((int32_t)(gSystemTimers.unlockExpireTick - now) <= 0) {
-                gSystemState.currentState = LOCKED_RELOCK;
+            gOutputStatus.ledGreen = LED_ON;
+
+            // Transitions:
+            if (gInputState.doorSensor == 0) { // Door opens again
+                gSystemState.currentState = UNLOCKED_DOOROPEN;
+                setTimer(UNLOCK_WINDOW_ID, DOOR_OPEN_MAX_MS);
             }
-            if (gInputState.doorSensor == 0) {
-                gSystemState.currentState = UNLOCKED_DOOROPEN; /* reopened */
+            else if (timer_flag[UNLOCK_WINDOW_ID] == 1) { // End of 10s relock
+                timer_flag[UNLOCK_WINDOW_ID] = 0;
+                gSystemState.currentState = LOCKED_RELOCK;
             }
             break;
 
         case UNLOCKED_ALWAYSOPEN:
-            /* keep solenoid unlocked until indoor button pressed >1s again toggles */
+            // DO: Solenoid UNLOCK, LED Green.
             gOutputStatus.solenoid = SOLENOID_UNLOCKED;
-            /* logic for toggling handled via events */
+            gOutputStatus.ledGreen = LED_ON;
+
+            // Transitions: Long Press Indoor Button (handled by immediate logic)
             break;
 
         case LOCKED_RELOCK:
+            // DO: Solenoid LOCK, LED Red.
             gOutputStatus.solenoid = SOLENOID_LOCKED;
             gOutputStatus.ledRed = LED_ON;
-            gOutputStatus.ledGreen = LED_OFF;
-            setLCD("",""); /* turn off after relock */
-            gSystemState.currentState = LOCKED_SLEEP;
+
+            // Transitions: Transition to SLEEP after 3s
+            if (timer_flag[WARNING_TASK_ID] == 1) {
+                 timer_flag[WARNING_TASK_ID] = 0;
+                 gSystemState.currentState = LOCKED_SLEEP;
+            } else {
+                 setTimer(WARNING_TASK_ID, WARNING_DURATION_MS); // Start 3s timer
+            }
             break;
 
         default:
             gSystemState.currentState = LOCKED_SLEEP;
             break;
-    } /* end switch */
+    }
 }
 
-/* Event handlers invoked by input_processing or external interrupts */
+// --- Event Handlers and Public API ---
+
 void State_Event_KeypadChar(char c)
 {
-    /* Post char to gKeyEvent for polling by State_Process */
     gKeyEvent.keyChar = c;
     gKeyEvent.isLong = 0;
 }
 
-void State_Event_IndoorButton(void)
+void State_Event_KeypadChar_Long(char c)
+{
+    gKeyEvent.keyChar = c;
+    gKeyEvent.isLong = 1;
+}
+
+void State_Event_IndoorButton_Long(void)
 {
     gInputState.indoorButton = 1;
-    /* immediate behaviour: if locked_sleep, wake up */
-    if (gSystemState.currentState == LOCKED_SLEEP) {
-        gSystemState.currentState = LOCKED_WAKEUP;
-    }
 }
 
 void State_Event_KeySensor(void)
 {
     gInputState.keySensor = 1;
-    /* immediate unlock override */
-    gSystemState.currentState = UNLOCKED_WAITOPEN;
-    gOutputStatus.solenoid = SOLENOID_UNLOCKED;
-    setLCD("Unlocked","By Key");
 }
 
 void State_Event_DoorSensor_Open(void)
 {
-    gInputState.doorSensor = 0; /* 0 = open per earlier assumption */
-    if (gSystemState.currentState == UNLOCKED_WAITOPEN) {
-        gSystemState.currentState = UNLOCKED_DOOROPEN;
-        gSystemTimers.unlockExpireTick = HAL_GetTick() + 30000;
-    }
+    gInputState.doorSensor = 0;
 }
 
 void State_Event_DoorSensor_Close(void)
 {
     gInputState.doorSensor = 1;
-    if (gSystemState.currentState == UNLOCKED_DOOROPEN) {
-        gSystemState.currentState = UNLOCKED_WAITCLOSE;
-        gSystemTimers.unlockExpireTick = HAL_GetTick() + 10000;
-    }
 }
 
-/* Password API */
 bool State_SetPassword(const char *newPass)
 {
     if (!newPass) return false;
     size_t len = strlen(newPass);
-    if (len < 4 || len > MAX_PASSWORD_LENGTH) return false;
-    strncpy(gPassword, newPass, MAX_PASSWORD_LENGTH);
-    gPassword[MAX_PASSWORD_LENGTH] = '\0';
+    if (len != PASSWORD_LENGTH) return false;
+
+    memcpy(gPassword, newPass, PASSWORD_LENGTH);
+    gPassword[PASSWORD_LENGTH] = '\0';
     return true;
 }
 
@@ -487,10 +474,4 @@ void State_ForceUnlock(void)
 {
     gSystemState.currentState = UNLOCKED_WAITOPEN;
     gOutputStatus.solenoid = SOLENOID_UNLOCKED;
-    setLCD("Force Unlock","Debug");
 }
-
-
-
-
-

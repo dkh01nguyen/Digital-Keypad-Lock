@@ -8,6 +8,7 @@ C_SRCS += \
 ../Core/Src/global.c \
 ../Core/Src/i2c_lcd.c \
 ../Core/Src/input_processing.c \
+../Core/Src/input_reading.c \
 ../Core/Src/keypad.c \
 ../Core/Src/kmp.c \
 ../Core/Src/main.c \
@@ -25,6 +26,7 @@ OBJS += \
 ./Core/Src/global.o \
 ./Core/Src/i2c_lcd.o \
 ./Core/Src/input_processing.o \
+./Core/Src/input_reading.o \
 ./Core/Src/keypad.o \
 ./Core/Src/kmp.o \
 ./Core/Src/main.o \
@@ -42,6 +44,7 @@ C_DEPS += \
 ./Core/Src/global.d \
 ./Core/Src/i2c_lcd.d \
 ./Core/Src/input_processing.d \
+./Core/Src/input_reading.d \
 ./Core/Src/keypad.d \
 ./Core/Src/kmp.d \
 ./Core/Src/main.d \

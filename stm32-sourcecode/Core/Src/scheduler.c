@@ -7,10 +7,6 @@
 #include "main.h"
 #include "scheduler.h"
 
-/* --------------------------------------
-   REMOVE Watchdog completely
-   -------------------------------------- */
-
 sTask SCH_tasks_G[SCH_MAX_TASKS];
 uint8_t SCH_task_count = 0;
 uint8_t Error_code_G = 0;

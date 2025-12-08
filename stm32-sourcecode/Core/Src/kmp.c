@@ -1,8 +1,5 @@
 #include "kmp.h"
 
-
-const char VALID_PASSWORD[PASSWORD_LENGTH] = "1234";
-
 /**
 Build LPS array for 4-character pattern
 **/
@@ -29,21 +26,21 @@ void KMP_BuildLPS(const uint8_t *pattern, uint16_t *lps)
     }
 }
 
-bool KMP_FindPassword(const uint8_t *input, uint16_t length, const uint8_t *password)
+bool KMP_FindPassword(const uint8_t *input, uint16_t length)
 {
     if (length < PASSWORD_LENGTH) {
         return false;
     }
     
     // Build LPS array
-    uint16_t lps[PASSWORD_LENGTH];
-    KMP_BuildLPS(password, lps);
-    
-    uint16_t i = 0;  // Index for input
-    uint16_t j = 0;  // Index for password
+	uint16_t lps[PASSWORD_LENGTH];
+	KMP_BuildLPS((const uint8_t*)gPassword, lps);
+
+	uint16_t i = 0;  // Index for input
+	uint16_t j = 0;  // Index for password
     
     while (i < length) {
-        if (password[j] == input[i]) {
+        if (gPassword[j] == input[i]) {
             i++;
             j++;
         }
@@ -51,7 +48,7 @@ bool KMP_FindPassword(const uint8_t *input, uint16_t length, const uint8_t *pass
         if (j == PASSWORD_LENGTH) {
             // Password found!
             return true;
-        } else if (i < length && password[j] != input[i]) {
+        } else if (i < length && gPassword[j] != input[i]) {
             if (j != 0) {
                 j = lps[j - 1];
             } else {

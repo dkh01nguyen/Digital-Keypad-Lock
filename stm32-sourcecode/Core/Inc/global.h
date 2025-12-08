@@ -1,181 +1,93 @@
 /*
  * global.h
  *
- *  Created on: Nov 20, 2025
- *      Author: nguye
+ * Created on: Nov 20, 2025
+ * Author: nguye
  */
 
 #ifndef INC_GLOBAL_H_
 #define INC_GLOBAL_H_
 
-//#include <stdint.h>
-//#include <stdbool.h>
-//
-//#define BUTTON_IS_PRESSED 		GPIO_PIN_RESET
-//#define BUTTON_IS_RELEASED 		GPIO_PIN_SET
-//
-//// Keypad 3x4 and indoor unlock button, door, key sensor
-//#define N0_OF_BUTTONS			15
-//extern uint8_t keypad_char_ready;     // 1 nếu đã có ký tự hoàn chỉnh
-//extern char keypad_last_char;         // Ký tự cuối cùng đã hoàn chỉnh
-//extern char keypad_preview_char;      // Ký tự đang preview
-//
-//// System states
-//#define INIT					0
-//#define LOCKED_SLEEP			1
-//#define LOCKED_WAKEUP			2
-//#define BATTERY_WARNING			3
-//#define LOCKED_ENTRY			4
-//#define LOCKED_VERIFY			5
-//#define PENALTY_TIMER			10
-//#define PERMANENT_LOCKOUT		11
-//#define UNLOCKED_WAITOPEN		20
-//#define UNLOCKED_DOOROPEN		21
-//#define UNLOCKED_ALWAYSOPEN		22
-//#define ALARM_FORGOTCLOSE		23
-//#define UNLOCKED_WAITCLOSE		24
-//#define UNLOCKED_SETPASSWORD	25
-//#define LOCKED_RELOCK			26
-//
-//// Input Processing
-//typedef struct {
-//    uint8_t keypadChar;      // Last confirmed key
-//    uint8_t indoorButton;    // 1 = pressed, 0 = released
-//    uint8_t keySensor;       // 1 = turned, 0 = normal
-//    uint8_t doorSensor;      // 1 = open, 0 = closed
-//} InputState_t;
-//
-//extern InputState_t gInputState;
-//extern char gKeyEvent;       // Last keypad event for state_processing
-//
-//// Output Processing
-//typedef struct {
-//    uint8_t ledRed;          // 0 = off, 1 = on
-//    uint8_t ledGreen;        // 0 = off, 1 = on
-//    uint8_t buzzer;          // 0 = off, 1 = on
-//    uint8_t solenoid;        // 0 = locked, 1 = unlocked
-//    char lcdLine1[17];       // LCD line 1 (16 chars + null)
-//    char lcdLine2[17];       // LCD line 2
-//} OutputStatus_t;
-//
-//extern OutputStatus_t gOutputStatus;
-//
-//// State Processing
-//typedef struct {
-//    uint8_t currentState;    // Current system state (INIT, LOCKED_SLEEP, ...)
-//    uint16_t timers[10];     // Generic timers for penalties, auto-relock, etc.
-//} SystemState_t;
-//
-//extern SystemState_t gSystemState;
-//
-//// Password storage
-//#define MAX_PASSWORD_LENGTH 20
-//extern char gPassword[MAX_PASSWORD_LENGTH + 1];  // Null-terminated
-//
-//// TIM SETUP
-//#define NUM_TASKS			10
-//
-//extern int timer_counter[NUM_TASKS];
-//extern int timer_flag[NUM_TASKS];
-//extern int TIMER_CYCLE;
-
-
-
-#include "stm32f1xx_hal.h"
+#include "main.h"
 #include <stdint.h>
 #include <stdbool.h>
 #include "i2c_lcd.h"
+#include "timer.h" // Includes timer API
 
+#define KEYPAD_ROWS 4
+#define KEYPAD_COLS 3
+#define KEYPAD_KEYS (KEYPAD_ROWS * KEYPAD_COLS)
+#define KEYPAD_SCAN_PERIOD_MS 10
+#define KEYPAD_DOUBLE_TIMEOUT_MS 350
+#define KEYPAD_DOUBLE_TIMEOUT 35 // Cycles for 350ms timeout
 
-#define KEYPAD_ROWS     4
-#define KEYPAD_COLS     3
-#define KEYPAD_KEYS     (KEYPAD_ROWS * KEYPAD_COLS)
-
-#define KEYPAD_SCAN_PERIOD_MS   	10
-#define KEYPAD_DOUBLE_TIMEOUT_MS 	350
-#define KEYPAD_DOUBLE_TIMEOUT    	35
-
-
-// Struct lưu port/pin
+// Struct save port/pin for Keypad
 typedef struct {
     GPIO_TypeDef *ROW_Port[KEYPAD_ROWS];
     uint16_t ROW_Pin[KEYPAD_ROWS];
-
     GPIO_TypeDef *COL_Port[KEYPAD_COLS];
     uint16_t COL_Pin[KEYPAD_COLS];
 } Keypad_HandleTypeDef;
-
 extern Keypad_HandleTypeDef hKeypad;
+
+// LCD Handle (Defined in i2c_lcd.h)
 extern I2C_LCD_HandleTypeDef lcd1;
 
+// Hardware-level defines
+#define DURATION_FOR_AUTO_INCREASING 100 // 100 cycles = 1s for long press
+#define BUTTON_IS_PRESSED GPIO_PIN_RESET
+#define BUTTON_IS_RELEASED GPIO_PIN_SET
 
-/* -------------------- Hardware-level defines -------------------- */
-#define DURATION_FOR_AUTO_INCREASING 	100
-#define BUTTON_IS_PRESSED 				GPIO_PIN_RESET
-#define BUTTON_IS_RELEASED 				GPIO_PIN_SET
+// System states (FSM)
+#define INIT 0
+#define LOCKED_SLEEP 1
+#define LOCKED_WAKEUP 2
+#define BATTERY_WARNING 3
+#define LOCKED_ENTRY 4
+#define LOCKED_VERIFY 5
 
-/* Keypad flags (optional globals) */
-extern uint8_t keypad_char_ready;     // 1 nếu đã có ký tự hoàn chỉnh
-extern char    keypad_last_char;      // Ký tự cuối cùng đã hoàn chỉnh
-extern char    keypad_preview_char;   // Ký tự đang preview
+#define PENALTY_TIMER 10
+#define PERMANENT_LOCKOUT 11
 
-/* -------------------- System states -------------------- */
-#define INIT                    0
-#define LOCKED_SLEEP            1
-#define LOCKED_WAKEUP           2
-#define BATTERY_WARNING         3
-#define LOCKED_ENTRY            4
-#define LOCKED_VERIFY           5
-#define PENALTY_TIMER           10
-#define PERMANENT_LOCKOUT       11
-#define UNLOCKED_WAITOPEN       20
-#define UNLOCKED_DOOROPEN       21
-#define UNLOCKED_ALWAYSOPEN     22
-#define ALARM_FORGOTCLOSE       23
-#define UNLOCKED_WAITCLOSE      24
-#define UNLOCKED_SETPASSWORD    25
-#define LOCKED_RELOCK           26
+#define UNLOCKED_WAITOPEN 20
+#define UNLOCKED_DOOROPEN 21
+#define UNLOCKED_ALWAYSOPEN 22
+#define ALARM_FORGOTCLOSE 23
+#define UNLOCKED_WAITCLOSE 24
+#define UNLOCKED_SETPASSWORD 25
+#define LOCKED_RELOCK 26
 
-/* -------------------- Input state -------------------- */
+// Indices for input_reading module
+#define N0_OF_BUTTONS 3
+#define DOOR_SENSOR_INDEX 0
+#define KEY_SENSOR_INDEX 1
+#define INDOOR_BUTTON_INDEX 2
+
+// Keypad flags (Used by keypad.c)
+extern uint8_t keypad_char_ready;
+extern char keypad_last_char;
+extern char keypad_preview_char;
+
+/* Input state snapshot (from input_processing) */
 typedef struct {
-    /* Last finalized keypad char (0 if none) - filled by input_processing */
-    char latestKey;
-
-    /* Discrete sensors (updated by input_reading.c or input_processing) */
-    uint8_t doorSensor;      /* 1 = closed (pressed) or as wired */
-    uint8_t keySensor;       /* 1 = mechanical key turned */
-    uint8_t indoorButton;    /* 1 = inside unlock button pressed */
-
-    /* Battery / ADC snapshot */
-    uint16_t batteryADC;     /* ADC reading */
-    uint8_t  batteryLow;     /* 1 if low battery */
+    uint8_t doorSensor;     // 1 = closed (Snapshot)
+    uint8_t keySensor;      // 1 = mechanical key used (Snapshot)
+    uint8_t indoorButton;   // 1 = long press event detected (Snapshot)
+    uint8_t batteryLow;     // 1 if low battery status
 } InputState_t;
-
 extern InputState_t gInputState;
 
-/* Key event: single-slot event produced by input_processing, consumed by state_processing */
+/* Key event (single-slot mailbox for FSM) */
 typedef struct {
-    char keyChar;   /* '#' enter, '*' backspace, '0'..'9', 'A'..'F', 0 = none */
-    uint8_t isLong; /* 1 if long press (>1s) */
+    char keyChar;   // '#' enter, '*' backspace, '0'..'9', 'A'..'F', 0 = none
+    uint8_t isLong; // 1 if long press (>1s) for '#'
 } KeyEvent_t;
-
 extern KeyEvent_t gKeyEvent;
 
-/* -------------------- Output status -------------------- */
-typedef enum {
-    LED_OFF = 0,
-    LED_ON  = 1,
-} Led_t;
-
-typedef enum {
-    SOLENOID_LOCKED = 0,
-    SOLENOID_UNLOCKED = 1,
-} Solenoid_t;
-
-typedef enum {
-    BUZZER_OFF = 0,
-    BUZZER_ON  = 1,
-} Buzzer_t;
+/* Output status */
+typedef enum { LED_OFF = 0, LED_ON = 1 } Led_t;
+typedef enum { SOLENOID_LOCKED = 0, SOLENOID_UNLOCKED = 1 } Solenoid_t;
+typedef enum { BUZZER_OFF = 0, BUZZER_ON = 1 } Buzzer_t;
 
 typedef struct {
     Led_t ledGreen;
@@ -185,40 +97,42 @@ typedef struct {
     char lcdLine1[17];
     char lcdLine2[17];
 } OutputStatus_t;
-
 extern OutputStatus_t gOutputStatus;
 
-/* -------------------- System timers / meta -------------------- */
-typedef struct {
-    uint32_t failedAttempts;      /* total incorrect attempts */
-    uint8_t  penaltyLevel;        /* 0 = none, 1..n */
-    uint32_t penaltyEndTick;      /* tick when penalty ends (HAL_GetTick), 0 = none, UINT32_MAX = permanent */
-    uint32_t unlockExpireTick;    /* tick for auto relock */
-    uint32_t alarmRepeatTick;     /* tick for repeating alarms */
-} SystemTimers_t;
+// Timer Task IDs (Fixed duration timers managed by timer.c)
+#define BUZZER_TASK_ID      0
+#define WARNING_TASK_ID     1  // Used for 3s durations (Battery, Format error, Relock 3s)
+#define ENTRY_TIMEOUT_ID    2  // Used for 30s inactivity (Locked_Entry, SetPassword)
+#define UNLOCK_WINDOW_ID    3  // Used for 10s/30s durations (WaitOpen, DoorOpen, WaitClose)
 
+/* System Timers (Long term state/timers) */
+typedef struct {
+    uint32_t failedAttempts;
+    uint8_t  penaltyLevel;
+    uint32_t penaltyEndTick;    // HAL_GetTick for long duration Penalty
+    uint32_t alarmRepeatTick;   // HAL_GetTick for Alarm repeat time
+} SystemTimers_t;
 extern SystemTimers_t gSystemTimers;
 
-/* -------------------- System state -------------------- */
+/* Current FSM State */
 typedef struct {
-    uint8_t currentState;         /* e.g. LOCKED_SLEEP, ... */
+    uint8_t currentState;
 } SystemState_t;
-
 extern SystemState_t gSystemState;
 
-/* -------------------- Password storage -------------------- */
-#define MAX_PASSWORD_LENGTH 20
-extern char gPassword[MAX_PASSWORD_LENGTH + 1];  /* null terminated */
+// Password storage and input buffer
+#define MAX_INPUT_LENGTH 20
+#define PASSWORD_LENGTH 4
+extern char gPassword[PASSWORD_LENGTH + 1];
+extern char inputBuffer[MAX_INPUT_LENGTH + 1];
 
-/* -------------------- Timer helper (from timer.c) -------------------- */
-/* If you use scheduler timers you may keep these, else use HAL_GetTick() */
+// Timer helper (from timer.c)
 #define NUM_TASKS 10
 extern int timer_counter[NUM_TASKS];
 extern int timer_flag[NUM_TASKS];
-extern int TIMER_CYCLE;
+extern int TIMER_CYCLE; // 10ms
 
-/* -------------------- Initialization helper -------------------- */
+// Initialization helper
 void init_global_variables(void);
-
 
 #endif /* INC_GLOBAL_H_ */

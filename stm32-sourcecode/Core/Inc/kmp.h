@@ -12,16 +12,9 @@
 #include <string.h>
 #include <stdbool.h>
 #include "global.h"
-#include "stm32f1xx_hal.h"
-
-// Configuration
-#define MAX_INPUT_LENGTH 20
-#define PASSWORD_LENGTH 4
-
-// Password database (can be stored in flash)
-extern const char VALID_PASSWORD[PASSWORD_LENGTH];
+#include "main.h"
 
 void KMP_BuildLPS(const uint8_t *pattern, uint16_t *lps);
-bool KMP_FindPassword(const uint8_t *input, uint16_t length, const uint8_t *password);
+bool KMP_FindPassword(const uint8_t *input, uint16_t length);
 
 #endif /* INC_KMP_H_ */

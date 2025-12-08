@@ -1,78 +1,154 @@
 /*
  * input_processing.c
  *
- *  Created on: Nov 20, 2025
- *      Author: nguye
+ * Created on: Nov 20, 2025
+ * Author: nguye
+ * Description: Reads all hardware inputs, performs event detection (Long Press, Edges),
+ * and updates global state (gInputState, gKeyEvent) for the FSM.
  */
 
 #include "input_processing.h"
-#include "global.h"
-#include "keypad.h"    /* your keypad API */
-#include "main.h"
-#include "stm32f1xx_hal.h"
 
-/* simple edge detection for discrete inputs if input_reading not available */
-static uint8_t prevDoor = 0xFF;
-static uint8_t prevKeySensor = 0xFF;
-static uint8_t prevIndoor = 0xFF;
+// Internal state for Keypad Long Press counting
+static uint16_t enter_press_count = 0;
+#define LONG_PRESS_CYCLES (1000 / 10) // 100 cycles for 1s (since scheduler runs at 10ms)
 
-/* Init */
+// External HAL handles needed for ADC
+extern ADC_HandleTypeDef hadc1;
+
+/**
+ * @brief Performs ADC conversion and updates gInputState.
+ */
+static void read_battery_adc(void) {
+    if (HAL_ADC_Start(&hadc1) == HAL_OK) {
+        if (HAL_ADC_PollForConversion(&hadc1, 10) == HAL_OK) {
+            uint16_t adc_value = HAL_ADC_GetValue(&hadc1);
+
+            // LOGIC KIỂM TRA NGƯỠNG ADC ĐƯỢC THỰC HIỆN TẠI ĐÂY (INPUT LAYER)
+            if (adc_value < 1000) {
+                gInputState.batteryLow = 1;
+            } else {
+                gInputState.batteryLow = 0;
+            }
+        }
+    }
+    HAL_ADC_Stop(&hadc1);
+}
+
+/**
+ * @brief Initializes the input processing module.
+ */
 void Input_Init(void)
 {
-    /* clear state */
-    gInputState.latestKey = 0;
+    // Reset Input states
     gInputState.doorSensor = 0;
     gInputState.keySensor = 0;
     gInputState.indoorButton = 0;
-    gInputState.batteryADC = 0;
     gInputState.batteryLow = 0;
 
+    // Reset Key Event Mailbox
     gKeyEvent.keyChar = 0;
     gKeyEvent.isLong = 0;
 
-    /* init prev values to current hardware values (debounced reading assumed in input_reading) */
-    prevDoor = (HAL_GPIO_ReadPin(DOOR_SENSOR_GPIO_Port, DOOR_SENSOR_Pin) == GPIO_PIN_RESET) ? 1 : 0;
-    prevKeySensor = (HAL_GPIO_ReadPin(KEY_SENSOR_GPIO_Port, KEY_SENSOR_Pin) == GPIO_PIN_RESET) ? 1 : 0;
-    prevIndoor = (HAL_GPIO_ReadPin(BUTTON_GPIO_Port, BUTTON_Pin) == GPIO_PIN_RESET) ? 1 : 0;
-
-    /* keypad globals (if used) are set inside keypad.Init */
+    enter_press_count = 0;
 }
 
-/* Called every 10ms by scheduler */
+/**
+ * @brief Periodic input processing routine.
+ */
 void Input_Process(void)
 {
-    /* 1) consume keypad finalized char (preferred) */
-    char k = 0;
-    /* If your keypad implementation uses Keypad_GetChar(), call it */
-    /* Otherwise, if you expose keypad_last_char global, read and clear it */
+    uint8_t current_state = gSystemState.currentState;
 
-    /* prefer function if available */
-    k = Keypad_GetChar(); /* returns 0 if none */
+    // --- 1. Read ADC and Buttons ---
 
-    if (k != 0) {
-        /* place into gInputState and post event to state machine */
-        gInputState.latestKey = (uint8_t)k;
-        gKeyEvent.keyChar = k;
-        gKeyEvent.isLong = 0; /* long-press not implemented for keypad here */
+    read_battery_adc();
+
+    // Read debounced states from input_reading.c
+    uint8_t door_curr = is_button_pressed(DOOR_SENSOR_INDEX);
+    uint8_t key_curr = is_button_pressed(KEY_SENSOR_INDEX);
+    uint8_t indoor_long = is_button_pressed_1s(INDOOR_BUTTON_INDEX);
+
+    // --- 2. Keypad Long Press Counter for Enter (#) ---
+
+    if (Keypad_IsPressed('#')) {
+        if (enter_press_count < LONG_PRESS_CYCLES) {
+            enter_press_count++;
+        }
     } else {
-        /* clear latestKey if none new - leave last value as historical if desired */
-        gInputState.latestKey = 0;
+        enter_press_count = 0;
     }
 
-    /* 2) Read discrete sensors and post changes to gInputState (edge detection) */
-    uint8_t door = (HAL_GPIO_ReadPin(DOOR_SENSOR_GPIO_Port, DOOR_SENSOR_Pin) == GPIO_PIN_RESET) ? 1 : 0;
-    uint8_t keySensor = (HAL_GPIO_ReadPin(KEY_SENSOR_GPIO_Port, KEY_SENSOR_Pin) == GPIO_PIN_RESET) ? 1 : 0;
-    uint8_t indoor = (HAL_GPIO_ReadPin(BUTTON_GPIO_Port, BUTTON_Pin) == GPIO_PIN_RESET) ? 1 : 0;
+    // --- 3. Consume keypad finalized char & Create Event ---
 
-    /* update input state snapshot */
-    gInputState.doorSensor = door;
-    gInputState.keySensor = keySensor;
-    gInputState.indoorButton = indoor;
+    char k = Keypad_GetChar();
 
-    /* detect edges if needed by state machine: set gKeyEvent with special codes or let state poll gInputState */
-    /* Here we simply let state_processing poll gInputState in State_Process() */
-    (void)prevDoor; (void)prevKeySensor; (void)prevIndoor;
+    if (k != 0) {
+        // Disable Keypad input if penalized or warning
+        if (current_state == BATTERY_WARNING ||
+            current_state == PENALTY_TIMER ||
+            current_state == PERMANENT_LOCKOUT)
+        {
+            // Input is ignored (event is not passed to FSM)
+        } else {
+            // Check for Long Press Enter (#) (Applies only in UNLOCKED_WAITOPEN)
+            if (k == '#' && current_state == UNLOCKED_WAITOPEN && enter_press_count >= LONG_PRESS_CYCLES) {
+                 State_Event_KeypadChar_Long(k);
+            } else {
+                 State_Event_KeypadChar(k);
+            }
+        }
+    }
+
+    // --- 4. Discrete Sensor Edge/Long Press Events ---
+
+    // a) Door Sensor (Edge Detection)
+    // Edge UP (Released -> Pressed): Door Opens -> Closes
+    if (door_curr == 1 && gInputState.doorSensor == 0) {
+        State_Event_DoorSensor_Close();
+    }
+    // Edge DOWN (Pressed -> Released): Door Closes -> Opens
+    else if (door_curr == 0 && gInputState.doorSensor == 1) {
+        State_Event_DoorSensor_Open();
+    }
+
+    // b) Key Sensor (Edge Detection - Press)
+    if (key_curr == 1 && gInputState.keySensor == 0) {
+        State_Event_KeySensor(); // FSM handles immediate override
+    }
+
+    // c) Indoor Button Long Press (Event)
+    if (indoor_long == 1 && gInputState.indoorButton == 0) {
+        State_Event_IndoorButton_Long(); // FSM handles toggle/transition
+    }
+
+    // --- 5. Update gInputState (Polling Snapshot) ---
+    // Update snapshot for FSM to use in transitions logic
+    gInputState.doorSensor = door_curr;
+    gInputState.keySensor = key_curr;
+    gInputState.indoorButton = indoor_long; // Store the Long Press flag
+
+    // --- 6. Switch-Case 14 trạng thái (Tách biệt) ---
+
+    switch (current_state) {
+        case LOCKED_SLEEP:
+        case LOCKED_WAKEUP:
+        case BATTERY_WARNING:
+        case LOCKED_ENTRY:
+        case LOCKED_VERIFY:
+        case PENALTY_TIMER:
+        case PERMANENT_LOCKOUT:
+        case UNLOCKED_WAITOPEN:
+        case UNLOCKED_SETPASSWORD:
+        case UNLOCKED_DOOROPEN:
+        case ALARM_FORGOTCLOSE:
+        case UNLOCKED_WAITCLOSE:
+        case UNLOCKED_ALWAYSOPEN:
+        case LOCKED_RELOCK:
+            // All specific input handling (disabling, event creation) is done above.
+            // No further action is required here, ensuring module separation.
+            break;
+        default:
+            break;
+    }
 }
-
-
-
