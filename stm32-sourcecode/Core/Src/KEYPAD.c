@@ -87,26 +87,26 @@ void Keypad_Scan(Keypad_HandleTypeDef *k)
 {
 	uint8_t detected = 0xFF; // Index of the newly detected key press
 
-	for (uint8_t col = 0; col < KEYPAD_COLS; col++)
+	for (uint8_t row = 0; row < KEYPAD_ROWS; row++)
 	{
-		// Set current column LOW (active)
-		for (uint8_t c = 0; c < KEYPAD_COLS; c++)
-			HAL_GPIO_WritePin(k->COL_Port[c], k->COL_Pin[c],
-				(c == col ? GPIO_PIN_RESET : GPIO_PIN_SET));
+		// Set current ROW LOW (active)
+		for (uint8_t r = 0; r < KEYPAD_ROWS; r++)
+			HAL_GPIO_WritePin(k->ROW_Port[r], k->ROW_Pin[r],
+				(r == row ? GPIO_PIN_RESET : GPIO_PIN_SET)); // <<< ĐIỀU CHỈNH LOGIC >>>
 
-		for (uint8_t row = 0; row < KEYPAD_ROWS; row++)
+		for (uint8_t col = 0; col < KEYPAD_COLS; col++)
 		{
 			uint8_t i = KeyIndex(row, col);
 
 			// Shift debounce registers
 			reg0[i] = reg1[i];
 			reg1[i] = reg2[i];
-			reg2[i] = HAL_GPIO_ReadPin(k->ROW_Port[row], k->ROW_Pin[row]);
+			reg2[i] = HAL_GPIO_ReadPin(k->COL_Port[col], k->COL_Pin[col]); // <<< ĐỌC CỘT >>>
 
 			if (reg0[i] == reg1[i] && reg1[i] == reg2[i])
 			{
 				// Update debounced key state
-                key_state_buffer[i] = (reg2[i] == GPIO_PIN_RESET) ? 1 : 0;
+				key_state_buffer[i] = (reg2[i] == GPIO_PIN_RESET) ? 1 : 0; // LOW = Pressed
 
 				// Edge detection (Key pressed)
 				if (reg3[i] != reg2[i])
@@ -120,9 +120,9 @@ void Keypad_Scan(Keypad_HandleTypeDef *k)
 		}
 	}
 
-	// Set all columns HIGH (safe state)
-	for (uint8_t c = 0; c < KEYPAD_COLS; c++)
-		HAL_GPIO_WritePin(k->COL_Port[c], k->COL_Pin[c], GPIO_PIN_SET);
+	// Set all ROWs HIGH (safe state)
+	for (uint8_t r = 0; r < KEYPAD_ROWS; r++)
+		HAL_GPIO_WritePin(k->ROW_Port[r], k->ROW_Pin[r], GPIO_PIN_SET);
 
 	// Double-Click Timer Logic
 	if (double_timer > 0)
@@ -177,6 +177,7 @@ void Keypad_Scan(Keypad_HandleTypeDef *k)
 		}
 	}
 }
+
 
 /**
  * @brief Checks the current debounced physical state of a key.
