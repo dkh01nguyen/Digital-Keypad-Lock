@@ -41,13 +41,5 @@ void SCH_Update(void);
 uint8_t SCH_Add_Task(void (*pFunction)(), uint32_t DELAY, uint32_t PERIOD);
 void SCH_Dispatch_Tasks(void);
 uint8_t  SCH_Delete_Task(const uint8_t TASK_INDEX);
-void SCH_Report_Status(void);
-void SCH_Go_To_Sleep(void);
-
-void MX_IWDG_Init(void);
-void Watchdog_Refresh(void);
-uint8_t Is_Watchdog_Reset(void);
-void Watchdog_Counting(void);
-void Reset_Watchdog_Counting(void);
 
 #endif /* INC_SCHEDULER_H_ */

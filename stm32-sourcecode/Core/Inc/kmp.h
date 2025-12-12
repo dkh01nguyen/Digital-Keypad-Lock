@@ -9,10 +9,7 @@
 #define INC_KMP_H_
 
 #include <stdint.h>
-#include <string.h>
 #include <stdbool.h>
-#include "global.h"
-#include "main.h"
 
 void KMP_BuildLPS(const uint8_t *pattern, uint16_t *lps);
 bool KMP_FindPassword(const uint8_t *input, uint16_t length);

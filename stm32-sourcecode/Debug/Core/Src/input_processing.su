@@ -1,3 +1,2 @@
-input_processing.c:22:13:read_battery_adc	16	static
-input_processing.c:41:6:Input_Init	4	static
-input_processing.c:59:6:Input_Process	16	static
+input_processing.c:19:6:Input_Init	4	static
+input_processing.c:25:6:Input_Process	16	static

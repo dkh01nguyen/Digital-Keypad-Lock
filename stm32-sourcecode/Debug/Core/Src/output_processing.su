@@ -1,8 +1,5 @@
-output_processing.c:18:13:center_text	24	static
-output_processing.c:30:6:Output_UpdateLEDs	8	static
-output_processing.c:39:6:Output_UpdateSolenoid	8	static
-output_processing.c:48:6:Output_UpdateBuzzer	8	static
-output_processing.c:56:6:Output_UpdateLCD	8	static
-output_processing.c:74:13:MapStateToVisuals	72	static
-output_processing.c:237:6:Output_Init	16	static
-output_processing.c:254:6:Output_Process	8	static
+output_processing.c:29:13:center_text	24	static
+output_processing.c:43:13:format_password_display	64	static
+output_processing.c:100:13:MapStateToVisuals	48	static
+output_processing.c:209:6:Output_Init	8	static
+output_processing.c:227:6:Output_Process	8	static

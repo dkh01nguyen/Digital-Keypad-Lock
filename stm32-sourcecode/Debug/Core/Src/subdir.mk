@@ -5,11 +5,11 @@
 
 # Add inputs and outputs from these tool invocations to the build variables 
 C_SRCS += \
+../Core/Src/KEYPAD.c \
 ../Core/Src/global.c \
 ../Core/Src/i2c_lcd.c \
 ../Core/Src/input_processing.c \
 ../Core/Src/input_reading.c \
-../Core/Src/keypad.c \
 ../Core/Src/kmp.c \
 ../Core/Src/main.c \
 ../Core/Src/output_processing.c \
@@ -23,11 +23,11 @@ C_SRCS += \
 ../Core/Src/timer.c 
 
 OBJS += \
+./Core/Src/KEYPAD.o \
 ./Core/Src/global.o \
 ./Core/Src/i2c_lcd.o \
 ./Core/Src/input_processing.o \
 ./Core/Src/input_reading.o \
-./Core/Src/keypad.o \
 ./Core/Src/kmp.o \
 ./Core/Src/main.o \
 ./Core/Src/output_processing.o \
@@ -41,11 +41,11 @@ OBJS += \
 ./Core/Src/timer.o 
 
 C_DEPS += \
+./Core/Src/KEYPAD.d \
 ./Core/Src/global.d \
 ./Core/Src/i2c_lcd.d \
 ./Core/Src/input_processing.d \
 ./Core/Src/input_reading.d \
-./Core/Src/keypad.d \
 ./Core/Src/kmp.d \
 ./Core/Src/main.d \
 ./Core/Src/output_processing.d \

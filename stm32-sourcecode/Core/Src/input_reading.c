@@ -30,6 +30,10 @@ GPIO_PinState read_button(int index)
         	return HAL_GPIO_ReadPin(KEY_SENSOR_GPIO_Port, KEY_SENSOR_Pin);
         case INDOOR_BUTTON_INDEX:
         	return HAL_GPIO_ReadPin(BUTTON_GPIO_Port, BUTTON_Pin);
+        case ENTER_BUTTON_INDEX:
+        	return HAL_GPIO_ReadPin(ENTER_GPIO_Port, ENTER_Pin);
+        case BACKSPACE_BUTTON_INDEX:
+        	return HAL_GPIO_ReadPin(BACKSPACE_GPIO_Port, BACKSPACE_Pin);
         default:
         	return GPIO_PIN_SET;
     }

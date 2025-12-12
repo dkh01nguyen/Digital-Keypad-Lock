@@ -1,4 +1,9 @@
 #include "kmp.h"
+#include <stdint.h>
+#include <string.h>
+#include <stdbool.h>
+#include "global.h"
+#include "main.h"
 
 /**
 Build LPS array for 4-character pattern

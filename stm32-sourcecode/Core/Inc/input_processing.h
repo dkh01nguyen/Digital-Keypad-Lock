@@ -8,13 +8,6 @@
 #ifndef INC_INPUT_PROCESSING_H_
 #define INC_INPUT_PROCESSING_H_
 
-#include <stdint.h>
-#include "global.h"
-#include "keypad.h"
-#include "main.h"
-#include "state_processing.h"
-#include "input_reading.h"
-
 /**
  * @brief Initialize input processing module.
  * Call once after HAL init and keypad init.

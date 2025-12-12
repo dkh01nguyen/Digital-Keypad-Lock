@@ -1,2 +1,2 @@
-kmp.c:7:6:KMP_BuildLPS	24	static
-kmp.c:29:6:KMP_FindPassword	32	static
+kmp.c:12:6:KMP_BuildLPS	24	static
+kmp.c:34:6:KMP_FindPassword	32	static
