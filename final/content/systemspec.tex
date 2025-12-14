@@ -9,10 +9,47 @@
     \label{fig:flowchart}
 \end{figure}
 Người dùng sẽ nhập một chuỗi hai mươi ký tự trong đó có chuỗi con bốn ký tự là mật khẩu của hệ số thập lục phân. Sau đó, vi xử lý trung tâm sẽ tìm kiếm mật khẩu
-trong chuỗi vừa nhập bằng thuật toán \code{Knutt - Morris - Pratt} và so sánh với dữ liệu được lưu trong bộ nhớ của vi. Nếu đúng, bộ não trung tâm
-sẽ gửi tín hiệu để mở chốt khóa và ngược lại. Để thao tác dễ dàng hơn, người sử dụng cũng sẽ được thấy và được cảnh báo các trạng thái của ổ khóa thông qua một màn hình LED.
+trong chuỗi vừa nhập bằng thuật toán \code{Knutt - Morris - Pratt} và so sánh với dữ liệu được lưu trong bộ nhớ của vi. Nếu đúng, vi xử lý trung tâm
+sẽ gửi tín hiệu để mở chốt khóa và ngược lại. Để thao tác dễ dàng hơn, người sử dụng cũng sẽ được thấy và được cảnh báo các trạng thái của ổ khóa thông qua một màn hình LCD.
 \subsection{Cấu tạo phần cứng}
-\subsubsection{Vi điều khiển ...}
+\subsubsection{Vi điều khiển STM32F103C8T6}
+Vi điều khiển STM32F103C8T6 thuộc dòng STM32F1 của STMicroelectronics, là một lựa chọn phổ biến cho 
+các dự án hệ thống nhúng đòi hỏi sự cân bằng giữa hiệu năng, bộ nhớ, và chi phí. Thiết bị được tích hợp lõi Arm\textsuperscript{\textregistered} Cortex\textsuperscript{\textregistered}-M3 32-bit RISC hiệu năng cao hoạt động ở tần số 72MHz, 
+bộ nhớ nhúng tốc độ cao và có nhiều chân I/O ngoại vi mở rộng, được kết nối qua hai bus APB. Vi điều khiển đóng vai trò chính trong việc nhận, xử lý và truyền dữ liệu thông qua giao thức GPIO và I\textsuperscript{2}C.
+
+\textbf{Đặc điểm kỹ thuật:}
+\begin{itemize}
+    \vspace{-10pt}
+    \item Lõi xử lý trung tâm: Arm\textsuperscript{\textregistered} Cortex\textsuperscript{\textregistered}-M3
+        \begin{itemize}
+            \vspace{-10pt}
+            \item Tần số tối đa 72 MHz, hiệu suất truy cập bộ nhớ đạt 1.25 DMIPS/MHz (Dhrystone 2.1) khi không có chu kỳ đang chờ.
+        \end{itemize}
+    \vspace{-10pt}
+    \item Bộ nhớ:
+        \begin{itemize}
+            \vspace{-10pt}
+            \item Flash: 64KB
+            \item SRAM: 20KB
+        \end{itemize}
+    \vspace{-10pt}
+    \item Giao tiếp ngoại vi
+        \vspace{-10pt}
+        \begin{itemize}
+        \item Tối đa 2 giao diện I\textsuperscript{2}C (hỗ trợ SMBus/PMBus).
+        \item Tối đa 3 bộ USART (hỗ trợ giao diện ISO 7816, LIN, hồng ngoại IrDA, điều khiển modem).
+        \item Tối đa 2 giao diện SPI (tốc độ lên đến 18 Mbit/s).
+        \item Giao diện CAN (chuẩn 2.0B Active).
+        \item Giao diện USB 2.0 tốc độ tối đa.
+    \end{itemize}
+    \item 51 cổng giao tiếp I/O.
+\end{itemize}
+\begin{figure}[H]
+    \centering
+    \includegraphics[scale = 0.6    ]{picture/stm32.jpg}
+    \caption{Hình ảnh thực tế vi điều khiển STM32F103C8T6}
+    \label{fig:stm32}
+\end{figure}
 \subsubsection{Khóa chốt điện từ LY-03}
 Solenoid Lock LY-03, hoạt động như một ổ khóa cửa sử dụng Solenoid để kích đóng mở bằng dòng điện. Trong đề tài này, nhóm sử dụng biến áp và relay 5V để cấp,
 ổn áp dòng điện để truyền tín hiệu từ vi điều khiển tới khóa chốt.
@@ -50,15 +87,16 @@ Solenoid Lock LY-03, hoạt động như một ổ khóa cửa sử dụng Solen
 \end{table}
 \subsubsection{Màn hình LED LCD 16 $\times$ 2}
 Màn hình với nền xanh dương sử dụng driver HD44780, có khả năng hiển thị 2 dòng với mỗi dòng 16 ký tự. 
-Kết hợp với mạch chuyển giao tiếp I2C để dễ dàng truyền nhận dữ liệu với bộ xử lý trung tâm.
+Kết hợp với mạch chuyển giao tiếp I\textsuperscript{2}C để dễ dàng truyền nhận dữ liệu với bộ xử lý trung tâm.
 \begin{table}[H]
     \centering
     \begin{adjustbox}{width=0.7\textwidth}
-    \begin{tabular}{|>{\centering\arraybackslash}m{6cm}|>{\centering\arraybackslash}m{4cm}|}    
+    \begin{tabular}{|>{\centering\arraybackslash}m{6cm}|>{\centering\arraybackslash}m{6cm}|}    
         \hline
         \textbf{Thông số} & \textbf{Giá trị} \\ \hline
         Điện áp sử dụng & 5V DC \\ \hline
         Kích thước & 80 $\times$ 36 $\times$ 12.5 mm \\ \hline
+        Hiển thị & Chữ trắng, nền xanh dương \\ \hline
     \end{tabular}
     \end{adjustbox}
     \caption{Thông số của màn hình LED 16 $\times$ 2}
@@ -79,3 +117,42 @@ Kết hợp với mạch chuyển giao tiếp I2C để dễ dàng truyền nh�
     \label{fig:lcdlcd}
 \end{figure}
 \subsubsection{Bàn phím ma trận 4 $\times$ 4}
+Bàn phím ma trận (Matrix Keypad) 4 $\times $4 là một giải pháp nhập liệu rời rạc phổ biến, 
+cung cấp khả năng nhập dữ liệu số và lệnh điều khiển thông qua mười sáu phím bấm vật lý, được 
+sắp xếp theo cấu trúc lưới không gian hai chiều. Ưu điểm cốt lõi của kiến trúc này là khả năng 
+tối ưu hóa tài nguyên phần cứng (GPIO Optimization), cho phép quản lý mười sáu trạng thái logic độc 
+lập với số đường tín hiệu chỉ bằng một nửa số trạng thái. Các phím bấm không có nguồn điện riêng 
+và chia sẻ đường tín hiệu chung, vi điều khiển không thể đọc trực tiếp trạng thái của tất cả mười sáu
+phím cùng một lúc. Thay vào đó, hệ thống phải sử dụng kỹ thuật quét lên toàn bộ bàn phím, với mỗi lần quét được thực thi cách nhau
+một khoảng thời gian rất ngắn cố định để đảm bảo ghi nhận được mọi dữ liệu mà người dùng đưa vào từ bàn phím.
+\begin{figure}[H]
+     \centering
+    \begin{subfigure}{0.3\textwidth}
+        \centering
+        \includegraphics[scale = 0.3]{picture/keypad.png}
+        \label{fig:keypad}
+    \end{subfigure}
+    \begin{subfigure}{0.6\textwidth}
+        \centering
+        \includegraphics[scale = 0.3]{picture/keypad_internal.png}
+        \label{fig:ikeypad}
+    \end{subfigure}
+    \caption{Hình ảnh thực tế và sơ đồ nút (từ trái qua phải) của bàn phím}
+    \label{fig:key}
+\end{figure}
+
+\begin{table}[H]
+    \centering
+    \begin{adjustbox}{width=0.7\textwidth}
+    \begin{tabular}{|>{\centering\arraybackslash}m{6cm}|>{\centering\arraybackslash}m{4cm}|}    
+        \hline
+        \textbf{Thông số} & \textbf{Giá trị} \\ \hline
+        Độ dài dây cắm & 88mm \\ \hline
+        Số đầu nối & 8 chân \\ \hline
+        Kích thước bàn phím &  77 $\times $ 69 mm \\ \hline
+        Nhiệt độ hoạt động & \SI{0}{\celsius} đến \SI{70}{\celsius} \\ \hline
+    \end{tabular}
+    \end{adjustbox}
+    \caption{Thông số của bàn phím ma trận}
+\end{table}
+
