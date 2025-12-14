@@ -5,4 +5,4 @@ state_processing.c:52:13:verify_password	8	static
 state_processing.c:58:13:activate_penalty	24	static
 state_processing.c:70:6:State_Init	8	static
 state_processing.c:77:6:State_Process	16	static
-state_processing.c:415:6:State_SetPassword	16	static
+state_processing.c:414:6:State_SetPassword	16	static

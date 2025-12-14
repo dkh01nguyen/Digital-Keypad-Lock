@@ -42,7 +42,8 @@ static void center_text(char *dest, const char *src)
  */
 static void format_password_display(void)
 {
-    char displayBuffer[17];
+	char displayBuffer[17];
+
     memset(displayBuffer, ' ', 16); // Fill with spaces
     displayBuffer[16] = '\0';
 
@@ -51,7 +52,7 @@ static void format_password_display(void)
     // 1. Detect new character input to restart visibility timer
     if (currentLen > lastInputLen)
     {
-        setTimer(MASK_TIMER_ID, MASK_TIMEOUT_MS / TIMER_CYCLE); // Start 1s timer
+        setTimer(MASK_TIMER_ID, MASK_TIMEOUT_MS); // Start 1s timer
     }
     lastInputLen = currentLen;
 
@@ -100,34 +101,26 @@ static void format_password_display(void)
 static void MapStateToVisuals(void)
 {
     // Default Actuator States (Safety First)
-    // FSM (state_processing) sets these, but we ensure defaults if FSM misses one.
-    // However, in this design, we trust global variables set by FSM for actuators,
-    // and we focus mainly on LCD text generation here.
 
     char tempStr[17];
 
     switch (gSystemState.currentState) {
-
         case LOCKED_SLEEP:
             center_text(gOutputStatus.lcdLine1, " ");
             center_text(gOutputStatus.lcdLine2, " ");
             break;
-
         case LOCKED_WAKEUP:
             center_text(gOutputStatus.lcdLine1, "LOCK WAKE UP");
             center_text(gOutputStatus.lcdLine2, "Checking...");
             break;
-
         case BATTERY_WARNING:
             center_text(gOutputStatus.lcdLine1, "WARNING");
             center_text(gOutputStatus.lcdLine2, "LOW BATTERY!");
             break;
-
         case LOCKED_ENTRY:
             center_text(gOutputStatus.lcdLine1, "ENTER PASSWORD:");
             format_password_display(); // Handle complex masking
             break;
-
         case LOCKED_VERIFY:
             // Display static error messages based on input buffer analysis
             // The state stays here for 3s (controlled by FSM timer)
@@ -144,7 +137,6 @@ static void MapStateToVisuals(void)
                 center_text(gOutputStatus.lcdLine2, tempStr);
             }
             break;
-
         case PENALTY_TIMER:
             center_text(gOutputStatus.lcdLine1, "Lockout warning");
             // Calculate remaining minutes
@@ -157,48 +149,38 @@ static void MapStateToVisuals(void)
                 center_text(gOutputStatus.lcdLine2, "Wait...");
             }
             break;
-
         case PERMANENT_LOCKOUT:
             center_text(gOutputStatus.lcdLine1, "Use the key");
             center_text(gOutputStatus.lcdLine2, "to unlock!");
             break;
-
         case UNLOCKED_WAITOPEN:
             center_text(gOutputStatus.lcdLine1, "Successful");
             center_text(gOutputStatus.lcdLine2, "authentication");
             break;
-
         case UNLOCKED_SETPASSWORD:
             center_text(gOutputStatus.lcdLine1, "New password:");
             format_password_display(); // Use same logic as entry
             break;
-
         case UNLOCKED_DOOROPEN:
-            // Optional: Can display "Door Open" or keep generic
             center_text(gOutputStatus.lcdLine1, "DOOR OPEN");
             center_text(gOutputStatus.lcdLine2, " ");
             break;
-
         case ALARM_FORGOTCLOSE:
             center_text(gOutputStatus.lcdLine1, "Close door!");
             center_text(gOutputStatus.lcdLine2, "!!!");
             break;
-
         case UNLOCKED_WAITCLOSE:
             center_text(gOutputStatus.lcdLine1, "Waiting for");
             center_text(gOutputStatus.lcdLine2, "Locking...");
             break;
-
         case UNLOCKED_ALWAYSOPEN:
             center_text(gOutputStatus.lcdLine1, "The door");
             center_text(gOutputStatus.lcdLine2, "always open!");
             break;
-
         case LOCKED_RELOCK:
             center_text(gOutputStatus.lcdLine1, "Locking...");
             center_text(gOutputStatus.lcdLine2, " ");
             break;
-
         default:
             break;
     }
@@ -226,8 +208,22 @@ void Output_Init(void)
 
 void Output_Process(void)
 {
-    // 1. Determine what to show based on State
-    MapStateToVisuals();
+	// 1. Determine what to show based on State
+	if (timer_counter[DOOR_NOTIFY_TIMER_ID] > 0)
+	{
+		// Overwrite lcd by notify change state of the door
+		char tempStr[17];
+		strcpy(gOutputStatus.lcdLine1, "DOOR STATUS:    ");
+		if (gInputState.doorSensor == 1)
+		{
+			strcpy(tempStr, "    CLOSED      ");
+		} else {
+			strcpy(tempStr, "    OPENED      ");
+		}
+		strcpy(gOutputStatus.lcdLine2, tempStr);
+	} else {
+		MapStateToVisuals();
+	}
 
     // 2. Hardware Actuation (LEDs, Buzzer, Solenoid)
     // Controlled directly by gOutputStatus set by FSM (state_processing)

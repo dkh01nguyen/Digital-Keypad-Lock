@@ -15,11 +15,13 @@
 static char last_keypad_char = 0;
 static uint8_t last_enter_state = 0;
 static uint8_t last_backspace_state = 0;
+static uint8_t last_door_btn_state = 0;
 
 void Input_Init(void) {
     last_keypad_char = 0;
     last_enter_state = 0;
     last_backspace_state = 0;
+    last_door_btn_state = 0;
 }
 
 void Input_Process(void) {
@@ -75,7 +77,18 @@ void Input_Process(void) {
     last_backspace_state = back_curr;
 
     // --- Update System Input State ---
-    gInputState.doorSensor = is_button_pressed(DOOR_SENSOR_INDEX);
+    uint8_t current_door_btn = is_button_pressed(DOOR_SENSOR_INDEX);
+	// Edge detective -> Toggle door's state
+	if (current_door_btn == 1 && last_door_btn_state == 0) {
+		if (gInputState.doorSensor == 0) {
+			gInputState.doorSensor = 1;
+		} else {
+			gInputState.doorSensor = 0;
+		}
+		// 100 ticks to dislay notify change state
+		setTimer(DOOR_NOTIFY_TIMER_ID, 1000);
+	}
+	last_door_btn_state = current_door_btn;
 
     // Mechanical Key Sensor
     gInputState.keySensor = is_button_pressed(KEY_SENSOR_INDEX);

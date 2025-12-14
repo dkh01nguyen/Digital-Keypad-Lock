@@ -1,5 +1,5 @@
 output_processing.c:29:13:center_text	24	static
 output_processing.c:43:13:format_password_display	64	static
-output_processing.c:100:13:MapStateToVisuals	48	static
-output_processing.c:209:6:Output_Init	8	static
-output_processing.c:227:6:Output_Process	8	static
+output_processing.c:101:13:MapStateToVisuals	48	static
+output_processing.c:191:6:Output_Init	8	static
+output_processing.c:209:6:Output_Process	40	static

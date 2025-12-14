@@ -100,11 +100,12 @@ extern OutputStatus_t gOutputStatus;
 
 // --- 5. Timers & Logic ---
 // Timer Task IDs
-#define BUZZER_TASK_ID      0
-#define WARNING_TASK_ID     1  // 3s timers
-#define ENTRY_TIMEOUT_ID    2  // 30s timers
-#define UNLOCK_WINDOW_ID    3  // 10s/30s timers
-#define MASK_TIMER_ID       4  // 1s timer for masking password char
+#define BUZZER_TASK_ID      	0
+#define WARNING_TASK_ID     	1  // 3s timers
+#define ENTRY_TIMEOUT_ID    	2  // 30s timers
+#define UNLOCK_WINDOW_ID    	3  // 10s/30s timers
+#define MASK_TIMER_ID       	4  // 1s timer for masking password char
+#define DOOR_NOTIFY_TIMER_ID 	5  // Timer for displaying change the state of the door
 
 /* System Timers (Long term) */
 typedef struct {
@@ -128,7 +129,7 @@ extern char gPassword[PASSWORD_LENGTH + 1];
 extern char inputBuffer[MAX_INPUT_LENGTH + 1];
 
 // Timer helper
-#define NUM_TASKS 5
+#define NUM_TASKS 6
 extern int timer_counter[NUM_TASKS];
 extern int timer_flag[NUM_TASKS];
 extern int TIMER_CYCLE; // 10ms

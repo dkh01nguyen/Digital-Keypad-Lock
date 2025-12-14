@@ -15,10 +15,10 @@
 static const uint32_t penalty_minutes[] = {1, 5, 25, 125};
 static const uint8_t MAX_PENALTY_LEVEL = 4;
 
-#define TIMEOUT_3S_CYCLES   (3000 / TIMER_CYCLE)  // 300
-#define TIMEOUT_10S_CYCLES  (10000 / TIMER_CYCLE) // 1000
-#define TIMEOUT_30S_CYCLES  (30000 / TIMER_CYCLE) // 3000
-#define ALARM_REPEAT_MS     (5 * 60 * 1000)       // 5 minutes
+#define TIMEOUT_3S_CYCLES   3000  				// 300
+#define TIMEOUT_10S_CYCLES  10000 				// 1000
+#define TIMEOUT_30S_CYCLES  30000				// 3000
+#define ALARM_REPEAT_MS     (5 * 60 * 1000)     // 5 minutes
 
 // --- Internal Variables ---
 static uint16_t inputLen = 0;
@@ -82,8 +82,7 @@ void State_Process(void) {
     /* Mechanical Key OR Indoor Button (Short Press)
      * Acts as Master Unlock in locked states.
      */
-    if (gInputState.keySensor == 1 ||
-       (gInputState.indoorButton == 1 && gInputState.doorSensor == 1))
+    if (gInputState.keySensor == 1 || gInputState.indoorButton == 1)
     {
         // Override conditions: Not already open logic (to prevent state hopping)
         if (gSystemState.currentState <= PERMANENT_LOCKOUT ||
