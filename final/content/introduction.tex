@@ -1,0 +1,37 @@
+\section{Giới thiệu}
+
+Khóa cửa là công cụ hữu dụng nhất trong việc đảm bảo nơi cư trú của một cá nhân an toàn với thế giới bên ngoài. Từ thô sơ đến phức tạp,
+khóa cửa biến đổi từ những then gỗ đơn giản cho đến hiện tại, trong bối cảnh an ninh và tiện lợi được phép tồn tại song song, các giải pháp khóa cửa
+thông minh đang dần thay thế các loại khóa cơ truyền thống sử dụng chìa. Đây là lý do nhóm chọn đề tài \textbf{"Ổ khóa điện tử"}
+
+Đề tài tập trung vào việc nghiên cứu và xây dựng một hệ thống khóa cửa tự động sử dụng vi điều khiển. Sản phẩm sử dụng
+bo mạch STM32, với vi điều khiển lõi Arm Cortex-M3 STM32F103C8T6 làm đơn 
+vị xử lý trung tâm. Hệ thống được thiết kế để cung cấp một giải pháp an ninh linh hoạt, kết hợp giữa việc xác 
+thực bằng mật khẩu số và khả năng dự phòng bằng chìa khóa cơ.
+
+\subsection{Tính năng của sản phẩm}
+\begin{itemize}
+    \item \textbf{Mở khóa bằng mật khẩu:} Người dùng nhập mật khẩu qua một bàn phím (keypad). 
+        Hệ thống cho phép nhập một lượng tối đa các ký tự và tìm mật khẩu dựa trên những ký tự nhập vào.
+    \item \textbf{Mở khóa bằng chìa khóa cơ:} Hệ thống tích hợp một ổ khóa cơ học truyền thống. Khi sử dụng 
+        chìa khóa cơ, một cảm biến sẽ được kích hoạt để mở khóa và khởi động lại hệ thống nếu đang bị vô hiệu hóa tạm thời.
+    \item \textbf{Quản lý mật khẩu:} Cho phép người dùng tạo lập và thay đổi mật khẩu bên trong ổ khóa theo các quy trình 
+        phổ biến hiện nay.
+    \item \textbf{Cảnh báo an ninh:} Nhập sai mật khẩu nhiều lần liên tiếp, hệ thống sẽ phát cảnh báo và vô hiệu hóa bàn phím, trước khi
+        vô hiệu hóa hoàn toàn bàn phím sau một số lần nhập cụ thể và phải sử dụng chìa khóa cơ để mở lại.
+    \item \textbf{Giao diện người dùng:} Thông tin của ổ khóa và mật khẩu đang được nhập sẽ được hiển thị qua một màn hình LED 16 $\times$ 2.
+    \item \textbf{Các tính năng tiện ích:}
+        \begin{itemize}
+            \item Trang bị một nút bấm ở mặt trong ổ khóa để mở khóa cửa từ bên trong
+            \item Do ổ khóa hoạt động trên một nguồn điện hữu hạn và cần cấp lại sau một thời gian hệ thống trang bị một mạch giám sát pin và đưa ra cảnh báo khi pin yếu.
+        \end{itemize}
+\end{itemize}
+
+\subsection{Giới hạn của đề tài}
+Phạm vi của đề tài được giới hạn trong các khía cạnh kỹ thuật sau:
+
+\begin{itemize}
+    \item \textbf{Nền tảng phần cứng:} Thiết kế tập trung vào vi điều khiển STM32F103C8T6. Các linh kiện ngoại vi được lựa chọn cụ thể bao gồm LCD 16x2 (giao tiếp I2C) , khóa Solenoid 12V LY - 03 , và Keypad 4 $\times$ 4.
+    \item \textbf{Phạm vi xác thức mật khẩu:} Mật khẩu được lưu trong MCU có độ dài cố định là 4 ký tự. Mặc dù người dùng có thể nhập chuỗi dài hơn, cơ chế xác thực chỉ dựa trên việc tìm kiếm chuỗi 4 ký tự này bằng thuật toán \code{Knuth - Morris - Pratt}, không sử dụng các phương thức mã hóa phức tạp.
+    \item \textbf{Nguồn cấp:} Hệ thống được thiết kế ưu tiên cho việc sử dụng 4 pin AA với mục tiêu hoạt động tối thiểu 6 ngày. Đề tài không tập trung vào các giải pháp sử dụng nguồn điện lưới hoặc pin sạc dung lượng cao.
+\end{itemize}

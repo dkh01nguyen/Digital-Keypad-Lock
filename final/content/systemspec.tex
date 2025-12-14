@@ -1,0 +1,81 @@
+\section{Cấu tạo và Nguyên lý hoạt động}
+\subsection{Nguyên lý hoạt động}
+Ổ khóa điện tử cho phép người dùng mở khóa cửa bằng cách sử dụng mật khẩu hoặc sử dụng chìa khóa cơ. Quy trình xử lý đơn giản của ổ khóa 
+được mô tả trong sơ đồ sau:
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\textwidth]{picture/basic-flowchart.png}
+    \caption{Sơ đồ hoạt động của ổ khóa điện tử}
+    \label{fig:flowchart}
+\end{figure}
+Người dùng sẽ nhập một chuỗi hai mươi ký tự trong đó có chuỗi con bốn ký tự là mật khẩu của hệ số thập lục phân. Sau đó, vi xử lý trung tâm sẽ tìm kiếm mật khẩu
+trong chuỗi vừa nhập bằng thuật toán \code{Knutt - Morris - Pratt} và so sánh với dữ liệu được lưu trong bộ nhớ của vi. Nếu đúng, bộ não trung tâm
+sẽ gửi tín hiệu để mở chốt khóa và ngược lại. Để thao tác dễ dàng hơn, người sử dụng cũng sẽ được thấy và được cảnh báo các trạng thái của ổ khóa thông qua một màn hình LED.
+\subsection{Cấu tạo phần cứng}
+\subsubsection{Vi điều khiển ...}
+\subsubsection{Khóa chốt điện từ LY-03}
+Solenoid Lock LY-03, hoạt động như một ổ khóa cửa sử dụng Solenoid để kích đóng mở bằng dòng điện. Trong đề tài này, nhóm sử dụng biến áp và relay 5V để cấp,
+ổn áp dòng điện để truyền tín hiệu từ vi điều khiển tới khóa chốt.
+\begin{figure}[H]
+    \centering
+    \begin{subfigure}{0.3\textwidth}
+        \centering
+        \includegraphics[scale = 0.8]{picture/solenoid.png}
+        \label{fig:image1}
+    \end{subfigure}
+    \begin{subfigure}{0.6\textwidth}
+        \centering
+        \includegraphics[scale = 0.8]{picture/image.png}
+        \label{fig:image2}
+    \end{subfigure}
+    \caption{Hình ảnh thực tế (trái) và nguyên lý hoạt động (phải) của Solenoid}
+    \label{fig:both}
+\end{figure}
+\vspace{-20pt}
+\begin{table}[H]
+    \centering
+    \begin{adjustbox}{width=0.7\textwidth}
+    \begin{tabular}{|>{\centering\arraybackslash}m{6cm}|>{\centering\arraybackslash}m{3cm}|}    
+        \hline
+        \textbf{Thông số} & \textbf{Giá trị} \\ \hline
+        Điện áp sử dụng & 12V DC \\ \hline
+        Dòng điện tiêu thụ & 0.8A \\ \hline
+        Công suất tiêu thụ & 9.6W \\ \hline
+        Loại Solenoid & Solenoid từ \\ \hline
+        Tốc độ phản ứng & dưới 1s \\ \hline
+        Thời gian kích liên tục & dưới 10s \\ \hline
+    \end{tabular}
+    \end{adjustbox}
+    \caption{Thông số khóa điện LY-03}
+\end{table}
+\subsubsection{Màn hình LED LCD 16 $\times$ 2}
+Màn hình với nền xanh dương sử dụng driver HD44780, có khả năng hiển thị 2 dòng với mỗi dòng 16 ký tự. 
+Kết hợp với mạch chuyển giao tiếp I2C để dễ dàng truyền nhận dữ liệu với bộ xử lý trung tâm.
+\begin{table}[H]
+    \centering
+    \begin{adjustbox}{width=0.7\textwidth}
+    \begin{tabular}{|>{\centering\arraybackslash}m{6cm}|>{\centering\arraybackslash}m{4cm}|}    
+        \hline
+        \textbf{Thông số} & \textbf{Giá trị} \\ \hline
+        Điện áp sử dụng & 5V DC \\ \hline
+        Kích thước & 80 $\times$ 36 $\times$ 12.5 mm \\ \hline
+    \end{tabular}
+    \end{adjustbox}
+    \caption{Thông số của màn hình LED 16 $\times$ 2}
+\end{table}
+\begin{figure}[H]
+    \centering
+    \begin{subfigure}{0.3\textwidth}
+        \centering
+        \includegraphics[scale = 0.2]{picture/lcd.png}
+        \label{fig:lcd}
+    \end{subfigure}
+    \begin{subfigure}{0.6\textwidth}
+        \centering
+        \includegraphics[scale = 0.3]{picture/lcd_pin.png}
+        \label{fig:lcd2}
+    \end{subfigure}
+    \caption{Hình ảnh thực tế (trái) và bản đồ chân cắm (phải) của màn hình LED}
+    \label{fig:lcdlcd}
+\end{figure}
+\subsubsection{Bàn phím ma trận 4 $\times$ 4}
