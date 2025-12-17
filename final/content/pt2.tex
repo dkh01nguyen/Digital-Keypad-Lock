@@ -113,7 +113,7 @@ Kết hợp với mạch chuyển giao tiếp I\textsuperscript{2}C để dễ d
         \includegraphics[scale = 0.3]{picture/lcd_pin.png}
         \label{fig:lcd2}
     \end{subfigure}
-    \caption{Hình ảnh thực tế (trái) và bản đồ chân cắm (phải) của màn hình LED}
+    \caption{Hình ảnh thực tế (trái) và sơ đồ chân cắm (phải) của màn hình LED}
     \label{fig:lcdlcd}
 \end{figure}
 \subsubsection{Bàn phím ma trận 4 $\times$ 4}
@@ -121,7 +121,9 @@ Bàn phím ma trận (Matrix Keypad) 4 $\times $4 là một giải pháp nhập 
 cung cấp khả năng nhập dữ liệu số và lệnh điều khiển thông qua mười sáu phím bấm vật lý, được 
 sắp xếp theo cấu trúc lưới không gian hai chiều. Ưu điểm cốt lõi của kiến trúc này là khả năng 
 tối ưu hóa tài nguyên phần cứng (GPIO Optimization), cho phép quản lý mười sáu trạng thái logic độc 
-lập với số đường tín hiệu chỉ bằng một nửa số trạng thái. Các phím bấm không có nguồn điện riêng 
+lập với số đường tín hiệu chỉ bằng một nửa số trạng thái. 
+
+Các phím bấm không có nguồn điện riêng 
 và chia sẻ đường tín hiệu chung, vi điều khiển không thể đọc trực tiếp trạng thái của tất cả mười sáu
 phím cùng một lúc. Thay vào đó, hệ thống phải sử dụng kỹ thuật quét lên toàn bộ bàn phím, với mỗi lần quét được thực thi cách nhau
 một khoảng thời gian rất ngắn cố định để đảm bảo ghi nhận được mọi dữ liệu mà người dùng đưa vào từ bàn phím.
@@ -177,7 +179,7 @@ một khoảng thời gian rất ngắn cố định để đảm bảo ghi nh�
 
 Thuật toán \code{Knuth-Morris-Pratt} (KMP) được phát triển bởi Donald Knuth, Vaughan Pratt, và James Morris vào năm 1977. 
 Nó được ứng dụng rộng rãi trong các công cụ tìm kiếm, trình biên dịch, và trình soạn thảo văn bản. Đây là một thuật toán 
-tìm kiếm chuỗi hiệu quả, được dùng để tìm một mẫu trong một đoạn văn bảnTiền xử lý – Xây dựng mảng LPS (Longest Prefix Suffix). Thuật toán này sử dụng bước tiền xử lý để xử lý các 
+tìm kiếm chuỗi hiệu quả, được dùng để tìm một mẫu trong một đoạn văn bản. Thuật toán này sử dụng bước tiền xử lý để xử lý các 
 trường hợp không khớp, nhờ đó đạt được độ phức tạp thời gian tuyến tính O(n).
 
 Thuật toán được triển khai với hai bước như sau:
