@@ -65,7 +65,7 @@ void init_global_variables(void)
 
     // Default Password: 1234
     strcpy(gPassword, "1234");
-//    inputBuffer[0] = '\0';
+    inputBuffer[0] = '\0';
 }
 
 #endif /* SRC_GLOBAL_C_ */

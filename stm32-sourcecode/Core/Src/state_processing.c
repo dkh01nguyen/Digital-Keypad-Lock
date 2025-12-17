@@ -117,14 +117,15 @@ void State_Process(void) {
             break;
 
         case LOCKED_WAKEUP:
-            // Logic: Check Battery
+        	// Ensuring entry safety
+        	input_clear();
+            // Check Battery
             if (gInputState.batteryLow)
             {
                 gSystemState.currentState = BATTERY_WARNING;
                 setTimer(WARNING_TASK_ID, TIMEOUT_3S_CYCLES);
             } else {
                 gSystemState.currentState = LOCKED_ENTRY;
-                input_clear();
                 setTimer(ENTRY_TIMEOUT_ID, TIMEOUT_30S_CYCLES);
             }
             break;
@@ -134,7 +135,6 @@ void State_Process(void) {
             if (timer_flag[WARNING_TASK_ID] == 1)
             {
                 gSystemState.currentState = LOCKED_ENTRY;
-                input_clear();
                 setTimer(ENTRY_TIMEOUT_ID, TIMEOUT_30S_CYCLES);
             }
             break;

@@ -207,10 +207,6 @@ void Output_Init(void)
 
 void Output_Process(void)
 {
-	if (gInputState.keySensor == 1 || gInputState.indoorButton == 1){
-		strcpy(gOutputStatus.lcdLine2," ERROR INIT");
-		HAL_Delay(3000);
-	}
 	// 1. Determine what to show based on State
 	if (timer_counter[DOOR_NOTIFY_TIMER_ID] > 0)
 	{

@@ -21,7 +21,7 @@ void Input_Init(void) {
     last_keypad_char = 0;
     last_enter_state = 0;
     last_backspace_state = 0;
-    last_door_btn_state = 1;
+    last_door_btn_state = 0;
 }
 
 void Input_Process(void) {
