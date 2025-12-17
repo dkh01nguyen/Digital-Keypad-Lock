@@ -1,0 +1,66 @@
+\section{Thiết kế}
+\begin{figure}[H]
+    \centering
+    \includegraphics[scale = 1.2]{picture/blockd.png}
+    \caption{Sơ đồ khối tổng quát}
+    \label{block-diagram}
+\end{figure}
+
+Sơ đồ bao gồm bốn khối: \textit{Khối xử lý trung tâm, khối giao diện người dùng, khối truyền động và cảm biến và quản lý năng lượng}.
+\begin{enumerate}[label = \textbf{\arabic*}.]
+    \item \textbf{Khối xử lý trung tâm:}
+        \vspace{-0.5cm}
+        \begin{itemize}[label = -]
+            \item Đây là đầu não hành vi của toàn bộ ổ khóa. Vi điều khiển thực hiện nhiệm vụ tiếp nhận tín hiệu đầu vào, 
+                xử lý thuật toán xác thực và phát lệnh điều khiển đến các thiết bị ngoại vi.
+            \item Khi nhập mật khẩu, MCU nhận chuỗi ký tự từ bàn phím, sau đó thực hiện tìm kiếm mật khẩu thực liên tục trong chuỗi 
+                dữ liệu nhập vào bằng thuật toán xác thực và kích hoạt cơ cấu mở khóa nếu nội dung được kiểm tra là chính xác.
+            \item Trong trường hợp người dùng sử dụng phương thức mở khóa bằng chìa cơ, MCU sẽ đọc trạng thái từ 
+                microswitch gắn với ổ khóa cơ học để thực hiện hành động tương ứng để mở khóa.
+            \item Sau khi nhập mật khẩu, MCU sẽ phát lệnh điều khiển đến các thiết bị đầu ra như màn hình hiển thị, còi báo động
+                và relay kích hoạt solenoid ứng với từng trạng thái hoạt động của hệ thống như: tiến hành mở khóa khi đã nhập đúng;
+                sai mật khẩu nhiều lần; hiển thị trực quan và bảo mật nội dung đang nhập...
+            \item Song song với việc xử lý mở khóa, MCU đảm nhận cả việc giám sát và quản lý các thông số vận hành quan trọng bao gồm: hiển thị trực 
+                quan trạng thái khóa; hiển thị thông báo người dùng khi điện áp nguồn không ổn định...
+        \end{itemize}
+    \item \textbf{Khối giao diện người dùng:}
+         \begin{itemize}[label = -]
+            \item \textbf{Về thiết bị đầu vào:} bàn phím ma trận kích thước 4 $\times$ 3 cho phép người dùng 
+                nhập mật khẩu và các lệnh điều khiển thông qua các phím số từ "0" đến "9", phím “Enter” để xác nhận, phím “Delete” 
+                để xóa ký tự gần nhất, đồng thời các ký tự chữ cái từ “A” đến “F” được tích hợp trên các phím số từ “1” đến “6”.
+            \item Một microswitch cơ học được lắp đặt tại vị trí ổ khóa cơ có chức năng phát hiện và thông báo cho MCU khi 
+                người dùng thực hiện thao tác mở khóa bằng chìa khóa truyền thống. 
+            \item Nút bấm có ký hiệu "Open" được gắn ở mặt trong của cửa, khi được kích hoạt sẽ truyền tín hiệu mở khóa đến MCU. 
+            \item Về thiết bị đầu ra: màn hình hiển thị dạng LCD 16$\times$2 hoặc màn hình 
+                TFT đảm nhiệm việc trình bày các giao diện người dùng và các thông báo hệ thống như chuỗi đang nhập, 
+                kết quả xác thực, thiết lập mật khẩu mới, cảnh báo mức pin thấp,...
+            \item Còi báo động phát ra các tín hiệu âm thanh trong các tình huống như phát hiện nhập sai mật khẩu liên tiếp nhiều 
+                lần hoặc nhắc nhở người dùng đóng cửa sau khi ra vào.
+            \item Hệ thống đèn LED chỉ thị trạng thái được đặt ở cả hai mặt trước và sau của khóa, giúp người dùng 
+                quan sát trực quan trạng thái khóa của cửa.
+        \end{itemize}
+    \item \textbf{Khối truyền động và cảm biến:}
+        \begin{itemize}[label = -]
+            \item Khóa điện từ kiểu solenoid đóng vai trò là cơ cấu chấp hành chính, thực hiện động tác đóng và mở chốt 
+                khóa theo chỉ thị từ vi điều khiển.
+            \item Do solenoid yêu cầu nguồn cấp có công suất lớn hơn khả năng cung cấp trực tiếp của MCU, 
+                vi điều khiển sẽ điều khiển solenoid gián tiếp thông qua một relay trung gian, tín hiệu điều khiển mức 
+                logic 5V từ chân GPIO của MCU kích hoạt cuộn dây relay, khi relay đóng tiếp điểm sẽ cho phép dòng điện 12V 
+                hoặc điện áp định mức phù hợp chạy qua solenoid để kích hoạt cơ chế khóa.
+            \item Về phần cảm biến, hệ thống sử dụng một microswitch cảm biến trạng thái cửa nhận biết vị trí đóng hoặc mở 
+                của cánh cửa và gửi về MCU, phục vụ cho thao tác cảnh báo người dùng.
+        \end{itemize}
+    \item \textbf{Khối quản lý năng lượng:}
+         \begin{itemize}[label = -]
+            \item Nguồn điện chính được cấp từ bộ pin kiểu AA gồm bốn viên mắc nối tiếp tạo ra điện áp khoảng 6V, đáp ứng nhu cầu
+            năng lượng cho tất cả các module trong thiết bị. Nguồn pin này được đưa vào mạch nguồn của bo mạch và qua các 
+            mạch điều chỉnh điện áp để tạo ra các mức điện áp ổn định 5V hoặc 3.3V cung cấp cho vi điều khiển cùng các linh kiện 
+            điện tử khác.
+
+            \item Để đảm bảo hệ thống hoạt động ổn định, khóa cần được trang bị mạch giám sát điện áp nguồn hoạt động trên 
+            nguyên tắc đo điện áp bộ nguồn và chuyển đổi thành tín hiệu số gửi về MCU. Từ đó, đưa ra các thông báo pin yếu đến 
+            người dùng khi điện áp pin thấp hơn định mức.
+
+        \end{itemize}
+\end{enumerate}
+

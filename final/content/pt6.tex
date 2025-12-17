@@ -1,0 +1,36 @@
+\section{Tổng kết}
+
+
+
+
+
+
+%--------------------------------------------------------------
+% KHÓ KHĂN - HƯỚNG GIẢI QUYẾT
+%--------------------------------------------------------------
+Trong quá trình thực hiện đồ án, nhóm đã gặp phải nhiều thách thức liên quan đến cả khía cạnh quản lý dự án lẫn thiết kế kỹ thuật. 
+Các thách thức này đòi hỏi phải áp dụng phương pháp phù hợp và nghiên cứu kỹ lưỡng để đảm bảo tính khả thi và hiệu quả của hệ thống,
+cụ thể như sau:
+\begin{itemize}
+\item \textbf{Phân tích và làm rõ yêu cầu hệ thống:}
+Đề tài được đưa ra ở mức độ tổng quát. Để có được chi tiết hóa đầy đủ các chức năng, ràng buộc và kịch bản hoạt 
+động của hệ thống khóa điện tử, nhóm đã tiến hành phân tích hành vi người dùng thực tế thông qua phương pháp quan sát 
+và đặt giả thuyết, từ đó xác định các trường hợp sử dụng cụ thể.
+\item \textbf{Phối hợp và quản lý tiến độ nhóm:}
+Nhóm sử dụng các nền tảng họp trực tuyến và duy trì kênh giao tiếp liên tục nhằm đảm bảo tiến độ dự án, cập nhật và giải quyết 
+các vấn đề phát sinh kịp thời. Việc này giải quyết được vấn đề di chuyển của các thành viên khi sự 
+khác biệt về khoảng cách địa lý giữa các thành viên là rất lớn.
+\item \textbf{Thiết kế nguồn ngoại vi cho các thiết bị}
+% Một trong những thách thức kỹ thuật quan trọng là sự không tương thích về điện áp giữa nguồn cung cấp và tải. Nguồn pin 4×AA chỉ cung cấp 6V, 
+% trong khi solenoid LY-03 yêu cầu điện áp hoạt động 12V để tạo lực khóa/mở đủ mạnh. Ngoài ra, vi điều khiển hoạt động ở mức logic 3.3V/5V không thể 
+% điều khiển trực tiếp tải cao áp này. Giải pháp được nhóm áp dụng là thiết kế mạch điều khiển hai tầng: vi điều khiển điều khiển relay 5V, relay đóng vai 
+% trò công tắc để kết nối nguồn 12V riêng biệt với solenoid. Kiến trúc này đảm bảo sự cách ly điện áp giữa mạch logic và mạch công suất, bảo vệ vi điều khiển 
+% khỏi dòng điện lớn. Đồng thời, tích hợp mạch giám sát điện áp pin thông qua ADC để cảnh báo sớm khi nguồn yếu, đảm bảo độ tin cậy hoạt động của hệ thống.
+
+% Khúc này nên viết cái gì đó chung chung cho toàn bộ các thiết bị ngoại vi xài điện cao hơn
+\item \textbf{Quản lý trạng thái phức tạp:}
+Thiết kế máy trạng thái ban đầu có quá nhiều trạng thái dư thừa. Việc triển khai logic này bằng 
+cấu trúc if - else lồng nhau truyền thống dễ dẫn đến lỗi luận lý và vô cùng khó bảo trì. %Để giải quyết vấn đề này, nhóm dự định sử dụng mô hình State Machine 
+% Programming, trong đó mỗi trạng thái được định nghĩa tường minh cùng với các điều kiện chuyển đổi. Vấn đề timer được nhóm cân nhắc sử dụng cooperativể giảm khả năng sai sót khi quản lý các timer.
+% Nói gì thêm ở đây cũng được
+\end{itemize}
