@@ -11,27 +11,29 @@ thực bằng mật khẩu số và khả năng dự phòng bằng chìa khóa c
 
 \subsection{Tính năng của sản phẩm}
 \begin{itemize}
-    \item \textbf{Mở khóa bằng mật khẩu:} Người dùng nhập mật khẩu qua một bàn phím (keypad). 
+    \item \textbf{Mở khóa bằng mật khẩu:} Người dùng nhập mật khẩu qua một bàn phím. 
         Hệ thống cho phép nhập một lượng tối đa các ký tự và tìm mật khẩu dựa trên những ký tự nhập vào.
-    \item \textbf{Mở khóa bằng chìa khóa cơ:} Hệ thống tích hợp một ổ khóa cơ học truyền thống. Khi sử dụng 
-        chìa khóa cơ, một cảm biến sẽ được kích hoạt để mở khóa và khởi động lại hệ thống nếu đang bị vô hiệu hóa tạm thời.
+    \item \textbf{Mở khóa bằng phương thức vật lý:} Hệ thống tích hợp một ổ khóa cơ học truyền thống. Khi sử dụng 
+        chìa khóa cơ, một cảm biến sẽ được kích hoạt để mở khóa và khởi động lại hệ thống nếu đang bị vô hiệu hóa tạm thời. Ngoài ra,
+        khóa được trang bị một nút bấm ở mặt trong ổ khóa để mở khóa cửa từ bên trong.
     \item \textbf{Quản lý mật khẩu:} Cho phép người dùng tạo lập và thay đổi mật khẩu bên trong ổ khóa theo các quy trình 
         phổ biến hiện nay.
     \item \textbf{Cảnh báo an ninh:} Nhập sai mật khẩu nhiều lần liên tiếp, hệ thống sẽ phát cảnh báo và vô hiệu hóa bàn phím, trước khi
         vô hiệu hóa hoàn toàn bàn phím sau một số lần nhập cụ thể và phải sử dụng chìa khóa cơ để mở lại.
-    \item \textbf{Giao diện người dùng:} Thông tin của ổ khóa và mật khẩu đang được nhập sẽ được hiển thị qua một màn hình LED 16 $\times$ 2.
-    \item \textbf{Các tính năng tiện ích:}
-        \begin{itemize}
-            \item Trang bị một nút bấm ở mặt trong ổ khóa để mở khóa cửa từ bên trong
-            \item Do ổ khóa hoạt động trên một nguồn điện hữu hạn và cần cấp lại sau một thời gian hệ thống trang bị một mạch giám sát pin và đưa ra cảnh báo khi pin yếu.
-        \end{itemize}
+    \item \textbf{Giao diện người dùng:} Thông tin về trạng thái của khóa và mật khẩu đang được nhập sẽ được hiển thị qua một màn hình LED.
 \end{itemize}
 
-\subsection{Giới hạn của đề tài}
+\subsection{Phạm vi đề tài}
 Phạm vi của đề tài được giới hạn trong các khía cạnh kỹ thuật sau:
-
+\vspace{-10pt}
 \begin{itemize}
-    \item \textbf{Nền tảng phần cứng:} Thiết kế tập trung vào vi điều khiển STM32F103C8T6. Các linh kiện ngoại vi được lựa chọn cụ thể bao gồm LCD 16x2 (giao tiếp I\textsuperscript{2}C) , khóa Solenoid 12V LY - 03 , và Keypad 4 $\times$ 4.
-    \item \textbf{Phạm vi xác thức mật khẩu:} Mật khẩu được lưu trong MCU có độ dài cố định là bốn ký tự. Mặc dù người dùng có thể nhập chuỗi dài hơn, cơ chế xác thực chỉ dựa trên việc tìm kiếm chuỗi bốn ký tự này bằng thuật toán \code{Knuth - Morris - Pratt}, không sử dụng các phương thức mã hóa phức tạp.
-    \item \textbf{Nguồn cấp:} Hệ thống được thiết kế ưu tiên cho việc sử dụng bốn pin AA với mục tiêu hoạt động tối thiểu sáu ngày. Đề tài không tập trung vào các giải pháp sử dụng nguồn điện lưới hoặc pin sạc dung lượng cao.
+    \item \textbf{Nền tảng phần cứng:} Thiết kế tập trung vào vi điều khiển STM32F103C8T6. Các linh kiện ngoại vi được lựa chọn cụ thể bao gồm 
+        LCD 16x2 (giao tiếp I\textsuperscript{2}C) , khóa Solenoid 12V LY - 03 , và Keypad 4 $\times$ 4.
+    \item \textbf{Phạm vi xác thức mật khẩu:} Mật khẩu được lưu có độ dài cố định là bốn ký tự. Người dùng có thể nhập chuỗi dài 
+        hơn, cơ chế xác thực chỉ dựa trên việc tìm kiếm chuỗi bốn ký tự này bằng thuật toán \code{Knuth - Morris - Pratt}, không sử dụng các 
+        phương thức mã hóa phức tạp.
+    \item \textbf{Hệ thống cấp nguồn cố định:} Hệ thống sử dụng đồng thời các bộ biến áp để cấp nguồn cho các khối linh kiện khác nhau.
+    \item \textbf{Giới hạn trong hiện thực mạch:} Việc sử dụng đồng thời các bộ biến áp trên nền tảng breadboard gây khó khăn trong 
+        việc quản lý nhiễu điện từ khi relay đóng ngắt, dễ làm ảnh hưởng đến tính ổn định của vi điều khiển. Ngoài ra, các kết nối bằng dây 
+        cắm (jumper) không mang tính bền vững cao, dễ xảy ra tình trạng lỏng mối nối hoặc sụt áp cục bộ khi cung cấp dòng điện lớn cho khóa Solenoid.
 \end{itemize}
