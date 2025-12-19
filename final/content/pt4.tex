@@ -1,1 +1,144 @@
 \section{Hiện thực}
+Hệ thống khóa điện tử nhập số được thiết kế dựa trên mô hình máy trạng thái hữu hạn (Finite State Machine - FSM) với mười bốn trạng thái hoạt động riêng biệt. Máy trạng thái được triển khai thông qua ba module chính:
+\begin{itemize}
+    \vspace{-5pt} \item  \textbf{Module xử lý đầu vào (input\_processing):} Đọc và phát hiện sự kiện từ bàn phím, nút nhấn và cảm biến.
+    \vspace{-5pt} \item  \textbf{Module xử lý trạng thái (state\_processing):} Thực thi logic chuyển đổi giữa các trạng thái.
+    \vspace{-5pt} \item  \textbf{Module xử lý đầu ra (output\_processing):} Điều khiển các thiết bị ngoại vi như đèn LED, solenoid, buzzer và màn hình LCD.
+\end{itemize}
+
+\subsection{Chi tiết các trạng thái}
+
+\subsubsection{LOCKED\_SLEEP (Trạng thái ngủ)}
+\begin{itemize}
+    \vspace{-5pt} \item  Màn hình LCD tắt; Solenoid ở trạng thái khóa.
+    \vspace{-5pt} \item  Bàn phím keypad 4x4 ở chế độ chờ; Hai đèn LED (Đỏ/Xanh) và Buzzer đều tắt.
+    \vspace{-5pt} \item  Cảm biến cửa (doorSensor) ở trạng thái 1 (cửa đóng).
+\end{itemize}
+\vspace{-10pt} \textbf{Chuyển trạng thái:}
+\begin{itemize}
+    \vspace{-5pt} \item  Nhấn bất kỳ phím nào $\rightarrow$ \texttt{LOCKED\_WAKEUP}.
+    \vspace{-5pt} \item  Kích hoạt keySensor hoặc indoor\_unlock\_button $\rightarrow$ \texttt{UNLOCKED\_WAITOPEN}.
+\end{itemize}
+
+\subsubsection{LOCKED\_WAKEUP (Trạng thái đánh thức)}
+
+\begin{itemize}
+    \vspace{-5pt} \item  Bật màn hình (hiển thị "LOCK WAKE UP" trong 1 giây); LED Đỏ bật.
+    \vspace{-5pt} \item  Đọc ADC channel 1 để kiểm tra điện áp nguồn.
+\end{itemize}
+\vspace{-10pt} \textbf{Chuyển trạng thái:}
+\begin{itemize}
+    \vspace{-5pt} \item  Điện áp pin $< 4.95V \rightarrow$ \texttt{BATTERY\_WARNING}.
+    \vspace{-5pt} \item  Điện áp ổn định $\rightarrow$ \texttt{LOCKED\_ENTRY}.
+\end{itemize}
+
+\subsubsection{BATTERY\_WARNING (Cảnh báo pin yếu)}
+    \begin{itemize}
+        \vspace{-5pt} \item  Hiển thị "LOW BATTERY!" trong 3 giây.
+        \vspace{-5pt} \item  LED Đỏ bật.
+        \vspace{-5pt} \item  Vô hiệu hóa bàn phím tạm thời.
+    \end{itemize}
+\vspace{-10pt} \textbf{Chuyển trạng thái:} Sau 3 giây $\rightarrow$ \texttt{LOCKED\_ENTRY}.
+
+\subsubsection{LOCKED\_ENTRY (Nhập mật khẩu)}
+
+\begin{itemize}
+    \vspace{-5pt} \item  Hiển thị "ENTER PASSWORD:"; Dòng 2 hiển thị cơ chế cửa sổ trượt và che dấu ký tự *.
+    \vspace{-5pt} \item  Nhận input từ keypad, Backspace (xóa), Enter (xác nhận). Buffer tối đa 20 ký tự.
+    \vspace{-5pt} \item  Bắt đầu bộ đếm 30 giây đến lúc ngưng nhận mật khẩu.
+\end{itemize}
+\vspace{-10pt} \textbf{Chuyển trạng thái:} \begin{itemize}
+\vspace{-5pt} \item  Kết thúc 30s $\rightarrow$ \texttt{LOCKED\_SLEEP}.
+\vspace{-5pt} \item  Nhấn Enter $\rightarrow$ \texttt{LOCKED\_VERIFY}.
+\end{itemize}
+\subsubsection{LOCKED\_VERIFY (Xác thực)}
+ 
+\begin{itemize}
+    \vspace{-5pt} \item  Kiểm tra độ dài (4-20 ký tự); Chạy thuật toán KMP tìm mật khẩu.
+    \vspace{-5pt} \item  Quản lý biến \texttt{failedAttempts}.
+\end{itemize}
+\vspace{-10pt} \textbf{Chuyển trạng thái:}
+\begin{itemize}
+    \vspace{-5pt} \item  Mật khẩu ĐÚNG $\rightarrow$ \texttt{UNLOCKED\_WAITOPEN}.
+    \vspace{-5pt} \item  Mật khẩu SAI: Nếu sai lần 3, 6, 9, 12 $\rightarrow$ \texttt{PENALTY\_TIMER}; Nếu sai lần 15 $\rightarrow$ \texttt{PERMANENT\_LOCKOUT}.
+\end{itemize}
+
+\subsubsection{PENALTY\_TIMER (Phạt tạm thời)}
+\begin{itemize}
+    \vspace{-5pt} \item  Vô hiệu hóa nhập liệu.
+    \vspace{-5pt} \item  Buzzer kêu 10s.
+    \vspace{-5pt} \item  Phạt theo cấp số nhân (1, 5, 25, 125 phút).
+\end{itemize}
+\vspace{-10pt} \textbf{Chuyển trạng thái:} 
+\begin{itemize}
+    \vspace{-5pt} \item  Hết thời gian $\rightarrow$ \texttt{LOCKED\_ENTRY}.
+    \vspace{-5pt} \item  Dùng chìa khóa cơ $\rightarrow$ \texttt{UNLOCKED\_WAITOPEN}.
+\end{itemize}
+
+\subsubsection{PERMANENT\_LOCKOUT (Khóa vĩnh viễn)}
+\begin{itemize}
+    \vspace{-5pt} \item  Khóa toàn bộ hệ thống nhập liệu.
+    \vspace{-5pt} \item  Hiển thị "Use the key to unlock!".
+\end{itemize}
+\vspace{-10pt} \textbf{Chuyển trạng thái:} Chỉ thoát khi dùng chìa khóa cơ hoặc nút mở trong.
+
+\subsubsection{UNLOCKED\_WAITOPEN (Chờ mở cửa)}
+    \begin{itemize}
+        \vspace{-5pt} \item  Mở chốt Solenoid và bật LED Xanh.
+        \vspace{-5pt} \item  Chạy bộ đếm 10 giây cho đến khi khóa cửa.
+    \end{itemize}
+\vspace{-10pt} \textbf{Chuyển trạng thái:} 
+\begin{itemize}
+    \vspace{-5pt} \item  Cửa mở $\rightarrow$ \texttt{UNLOCKED\_DOOROPEN} 
+    \vspace{-5pt} \item  Quá 10s không mở $\rightarrow$ \texttt{LOCKED\_RELOCK}.
+\end{itemize}
+\subsubsection{UNLOCKED\_SETPASSWORD (Thiết lập mật khẩu mới)}
+\begin{itemize}
+    \vspace{-5pt} \item  Cho phép nhập tối đa 4 ký tự 
+    \vspace{-5pt} \item  Lưu vào biến toàn cục khi nhấn Enter.
+\end{itemize}
+\vspace{-10pt} \textbf{Chuyển trạng thái:} Thành công hoặc lỗi/timeout $\rightarrow$ Quay về trạng thái khóa hoặc chờ tương ứng.
+
+\subsubsection{UNLOCKED\_DOOROPEN (Cửa đang mở)}
+ \begin{itemize}
+    \vspace{-5pt} \item  Giữ Solenoid mở 
+    \vspace{-5pt} \item  Hiển thị "DOOR OPEN"; Timer 30 giây.
+ \end{itemize}
+\vspace{-10pt} \textbf{Chuyển trạng thái:} 
+\begin{itemize}
+    \vspace{-5pt} \item  Đóng cửa $\rightarrow$ \texttt{UNLOCKED\_WAITCLOSE}.
+    \vspace{-5pt} \item  Quá 30s $\rightarrow$ \texttt{ALARM\_FORGOTCLOSE}.
+\end{itemize}
+
+\subsubsection{ALARM\_FORGOTCLOSE (Cảnh báo quên đóng)}
+ \begin{itemize}
+    \vspace{-5pt} \item  Buzzer kêu 10 giây 
+    \vspace{-5pt} \item  Nhắc nhở "Close door!" mỗi 5 phút.
+ \end{itemize}
+\vspace{-10pt} \textbf{Chuyển trạng thái:} Cửa đóng $\rightarrow$ \texttt{UNLOCKED\_WAITCLOSE}.
+
+\subsubsection{UNLOCKED-ALWAYSOPEN (Chế độ luôn mở)}
+ \begin{itemize}
+    \vspace{-5pt} \item  Vô hiệu hóa cảnh báo quên đóng 
+    \vspace{-5pt} \item  Giữ cửa luôn ở trạng thái mở.
+ \end{itemize}
+\vspace{-10pt} \textbf{Chuyển trạng thái:} Người dùng chủ động đóng cửa $\rightarrow$ \texttt{UNLOCKED\_WAITCLOSE}.
+
+\subsubsection{LOCKED\_RELOCK (Khóa lại)}
+ \begin{itemize}
+    \vspace{-5pt} \item  Đẩy chốt Solenoid 
+    \vspace{-5pt} \item  LED Đỏ bật Hiển thị "Locking...".
+ \end{itemize}
+\vspace{-10pt} \textbf{Chuyển trạng thái:} Sau 3 giây tự động chuyển về \texttt{LOCKED\_SLEEP}.
+
+\subsection{Sơ đồ máy trạng thái}
+Sơ đồ máy trạng thái có thể được truy cập qua đường dẫn sau: 
+
+\url{https://drive.google.com/file/d/1TCnZJqhzMKbLzAA-fE1OvaO3ULszKEpr/view}
+
+\begin{sidewaysfigure}
+    \centering
+    \includegraphics[width=1\textheight]{picture/LDP_FSM.jpg}
+    \caption{Sơ đồ mô tả các trạng thái của ổ khóa}
+    \label{fig:fsm}
+\end{sidewaysfigure}
