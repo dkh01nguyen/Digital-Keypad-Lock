@@ -52,7 +52,6 @@ Các thư mục khác của folder mã nguồn (stm32-sourceode) được STM32C
 
 - **kmp.c / kmp.h**  
   - Thuật toán Knuth-Morris-Pratt (KMP) để xác thực mật khẩu.  
-  - Hiệu suất O(n+m), tối ưu khi mật khẩu không khớp một phần.
   - Hỗ trợ khả năng xác thực mật khẩu chính xác liên tục (4 ký tự) trong chuỗi nhập (<= 20 ký tự).
 
 ### Hardware Interface Layer
