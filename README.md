@@ -18,7 +18,7 @@ Mã nguồn được tổ chức theo cấu trúc module hóa với hai thư m�
 - `Core/Src`: chứa implementation.
 Các thư mục khác của folder mã nguồn (stm32-sourceode) được STM32CubeIDE tạo tự động khi người dùng cấu hình ioc cho dự án và cài đặt các file thư viện, cấu hình mặc định.
 
-### 🔧 System Management Layer
+### System Management Layer
 - **main.c / main.h**  
   - Khởi tạo clock và ngoại vi (GPIO, I2C, Timer) qua HAL.  
   - Add task và khai báo dispatch ở vòng lặp chính của chương trình.  
@@ -35,7 +35,7 @@ Các thư mục khác của folder mã nguồn (stm32-sourceode) được STM32C
   - Quản lý biến toàn cục, buffer dữ liệu, cờ trạng thái.  
   - Điểm giao tiếp dữ liệu giữa các module.  
 
-### ⚙️ Logic and Algorithm Layer
+### Logic and Algorithm Layer
 - **state_processing.c / state_processing.h**  
   - Finite State Machine quản lý hành vi hệ thống.  
   - Nhận thao tác từ input, bật cờ (sử dụng output) hoặc chuyển trạng thái theo thiết kế. 
