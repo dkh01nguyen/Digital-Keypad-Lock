@@ -1,16 +1,43 @@
 \section{Kết luận}
+Đề tài "Ổ khóa điện tử" đã được nhóm triển khai thành công với mục tiêu xây dựng một hệ thống khóa cửa sử dụng vi điều khiển STM32F103C8T6, kết 
+hợp phương thức xác thực bằng mật khẩu 16 ký tự và cơ chế dự phòng bằng chìa khóa cơ hoặc nút mở khóa trong. Qua quá trình nghiên cứu, thiết kế và hiện thực, 
+nhóm đã đạt được những kết quả quan trọng về mặt kỹ thuật cũng như tích lũy được nhiều kinh nghiệm trong lĩnh vực hệ thống nhúng.
 
+%--------------------------------------------------------------
+% KẾT QUẢ
+%--------------------------------------------------------------
+\subsection{Kết quả đạt được}
+Hệ thống ổ khóa điện tử đã được hoàn thiện với đầy đủ các tính năng theo đúng phạm vi và chức năng đề tài đã đề ra:
+\begin{itemize}
+    \vspace{-5pt} 
+    \item Xác thực mật khẩu thông qua bàn phím ma trận 4 $\times$ 4 với hai phím hỗ trợ Backspace và Enter để xác thực.
+    \vspace{-5pt} 
+    \item Mở khóa bằng phương thức vật lý sử dụng chìa khóa cơ và nút bấm bên trong.
+    \vspace{-5pt} 
+    \item Quản lý mật khẩu cho phép người dùng tạo lập và thay đổi.
+    \vspace{-5pt} 
+    \item Cơ chế cảnh báo an ninh với các mức phạt thời gian tăng dần theo cấp số nhân.
+    \vspace{-5pt} 
+    \item Giao diện người dùng trực quan thông qua màn hình LCD 16 $\times$ 2.
+\end{itemize}
 
+Về mặt kiến trúc hệ thống, nhóm đã thiết kế và triển khai thành công mô hình máy trạng thái chi tiết, đảm bảo logic chuyển đổi chặt chẽ giữa các trạng thái. 
+Việc quản lý nhiều trạng thái với logic chuyển đổi đa dạng gây không ít khó khăn, nhưng qua quá trình nghiên cứu và tối ưu, nhóm đã xây dựng được một kiến trúc FSM rõ ràng, dễ bảo trì 
+và mở rộng. Việc chia tách module thành các khối xử lý độc lập (\texttt{input\_processing}, \texttt{state\_processing}, \texttt{output\_processing}) không chỉ giúp mã nguồn dễ đọc hơn mà 
+còn tạo điều kiện thuận lợi cho việc debug và phát triển thêm tính năng mới trong tương lai.
 
+Ở phương thức xác thực mật khẩu, áp dụng thuật toán Knuth-Morris-Pratt cho cơ chế dò tìm mật khẩu trong chuỗi ký tự nhập giúp tối ưu hiệu suất xử lý với độ phức tạp O(n) và khả năng bảo mật 
+đáng kể khi có kẻ gian cố tình theo dõi khi người dùng nhập mật khẩu (tính năng xác thực trên chuỗi nhập được nhóm tham khảo ở các sản phẩm thực tế trong thị trường).
 
+Về mặt kỹ thuật phần cứng, nhóm đã có cơ hội hiện thực trên nhiều thiết bị khác nhau, từ các nút nhấn, LED đơn giản đến các thiết bị khá phức tạp như màn hình LCD và keypad. Thông qua quá 
+trình tìm kiếm các linh kiện và video hướng dẫn liên quan đã nâng cao kiến thức và khả năng áp dụng thực tế các linh kiện của các thành viên. 
 
 
 %--------------------------------------------------------------
 % KHÓ KHĂN - HƯỚNG GIẢI QUYẾT
 %--------------------------------------------------------------
-Trong quá trình thực hiện đồ án, nhóm đã gặp phải nhiều thách thức liên quan đến cả khía cạnh quản lý dự án lẫn thiết kế kỹ thuật. 
-Các thách thức này đòi hỏi phải áp dụng phương pháp phù hợp và nghiên cứu kỹ lưỡng để đảm bảo tính khả thi và hiệu quả của hệ thống,
-cụ thể như sau:
+\subsection{Khó khăn - hướng giải quyết}
+Trong quá trình thực hiện đồ án, nhóm đã gặp phải nhiều thách thức liên quan đến cả khía cạnh quản lý dự án lẫn thiết kế kỹ thuật"
 \begin{itemize}
 \item \textbf{Phân tích và làm rõ yêu cầu hệ thống:}
 Đề tài được đưa ra ở mức độ tổng quát. Để có được chi tiết hóa đầy đủ các chức năng, ràng buộc và kịch bản hoạt 
@@ -20,17 +47,35 @@ và đặt giả thuyết, từ đó xác định các trường hợp sử dụ
 Nhóm sử dụng các nền tảng họp trực tuyến và duy trì kênh giao tiếp liên tục nhằm đảm bảo tiến độ dự án, cập nhật và giải quyết 
 các vấn đề phát sinh kịp thời. Việc này giải quyết được vấn đề di chuyển của các thành viên khi sự 
 khác biệt về khoảng cách địa lý giữa các thành viên là rất lớn.
-\item \textbf{Thiết kế nguồn ngoại vi cho các thiết bị}
-% Một trong những thách thức kỹ thuật quan trọng là sự không tương thích về điện áp giữa nguồn cung cấp và tải. Nguồn pin 4×AA chỉ cung cấp 6V, 
-% trong khi solenoid LY-03 yêu cầu điện áp hoạt động 12V để tạo lực khóa/mở đủ mạnh. Ngoài ra, vi điều khiển hoạt động ở mức logic 3.3V/5V không thể 
-% điều khiển trực tiếp tải cao áp này. Giải pháp được nhóm áp dụng là thiết kế mạch điều khiển hai tầng: vi điều khiển điều khiển relay 5V, relay đóng vai 
-% trò công tắc để kết nối nguồn 12V riêng biệt với solenoid. Kiến trúc này đảm bảo sự cách ly điện áp giữa mạch logic và mạch công suất, bảo vệ vi điều khiển 
-% khỏi dòng điện lớn. Đồng thời, tích hợp mạch giám sát điện áp pin thông qua ADC để cảnh báo sớm khi nguồn yếu, đảm bảo độ tin cậy hoạt động của hệ thống.
+\item \textbf{Thiết kế nguồn ngoại vi cho các thiết bị:}
+Vi điều khiển hoạt động ở mức logic 3.3V/5V không thể điều khiển trực tiếp tải 12V cao áp dành cho Solenoid. Giải pháp được nhóm áp dụng là thiết kế mạch điều 
+khiển hai tầng: vi điều khiển điều khiển relay 5V, relay đóng vai trò công tắc để kết nối nguồn 12V riêng biệt với solenoid. Kiến trúc này đảm bảo sự cách ly 
+điện áp giữa mạch logic và mạch công suất, bảo vệ vi điều khiển khỏi dòng điện lớn.
 
-% Khúc này nên viết cái gì đó chung chung cho toàn bộ các thiết bị ngoại vi xài điện cao hơn
 \item \textbf{Quản lý trạng thái phức tạp:}
 Thiết kế máy trạng thái ban đầu có quá nhiều trạng thái dư thừa. Việc triển khai logic này bằng 
-cấu trúc if - else lồng nhau truyền thống dễ dẫn đến lỗi luận lý và vô cùng khó bảo trì. %Để giải quyết vấn đề này, nhóm dự định sử dụng mô hình State Machine 
-% Programming, trong đó mỗi trạng thái được định nghĩa tường minh cùng với các điều kiện chuyển đổi. Vấn đề timer được nhóm cân nhắc sử dụng cooperativể giảm khả năng sai sót khi quản lý các timer.
-% Nói gì thêm ở đây cũng được
+cấu trúc if - else lồng nhau truyền thống dễ dẫn đến lỗi luận lý và vô cùng khó bảo trì. Để giải quyết vấn đề này, nhóm dự định sử dụng mô hình State Machine 
+rogramming, trong đó mỗi trạng thái được định nghĩa tường minh cùng với các điều kiện chuyển đổi. Vấn đề timer được nhóm cân nhắc sử dụng cooperativể giảm khả năng sai sót khi quản lý các timer.
 \end{itemize}
+
+\subsection{Phát triển trong tương lai}
+Mặc dù đã đạt được những kết quả trong phạm vi dự án, hệ thống ổ khóa điện tử vẫn còn nhiều tiềm năng để phát triển và cải thiện.
+Theo thiết kế dự án, mã nguồn đã tích hợp trạng thái cảnh báo pin yếu (kiểm tra điện áp nguồn mỗi khi hệ thống được đánh thức), tuy nhiên để thuận 
+tiện cho việc kiểm thử trên breadboard với nguồn adapter, cờ báo pin yếu đang được giả lập (mức 0 - không cảnh báo). Trong các phiên bản tiếp theo, 
+nhóm có thể chuyển đổi sang sử dụng pin AA hoặc pin sạc lithium-ion với mạch quản lý hoàn chỉnh, từ đó kích hoạt đầy đủ tính năng giám sát pin thực 
+tế và cảnh báo người dùng thay pin kịp thời.
+
+Về phương thức xác thực, hệ thống hiện tại chỉ sử dụng mật khẩu số dựa trên bàn phím. Để nâng cao tính bảo mật và trải nghiệm người dùng, hệ thống có thể được mở rộng với các phương thức sinh trắc học như:
+\begin{itemize}
+    \item Cảm biến vân tay cho phép xác thực nhanh chóng và chính xác.
+\item Nhận dạng khuôn mặt thông qua cảm biến hồng ngoại và thuật toán xử lý ảnh.
+\item Nhận dạng giọng nói để tạo trải nghiệm xác thực tự nhiên hơn.
+\end{itemize}
+Việc tích hợp đa phương thức xác thực sẽ tăng đáng kể mức độ an ninh của hệ thống, đồng thời mang lại sự tiện lợi cho người dùng.
+
+Về cơ chế dự phòng, dự án hiện tại sử dụng chìa khóa cơ truyền thống có thể được thay thế bằng các giải pháp hiện đại hơn như thẻ từ RFID hoặc NFC. 
+Điều này cho phép quản lý quyền truy cập linh hoạt hơn, ví dụ như cấp thẻ tạm thời cho khách hoặc vô hiệu hóa thẻ bị mất mà không cần thay đổi ổ khóa.
+
+Cuối cùng, xu hướng phát triển hướng tới tích hợp khả năng kết nối IoT. Bằng cách trang bị module WiFi hoặc Bluetooth, hệ thống có thể được điều khiển và giám sát từ xa thông qua ứng dụng di động. 
+Người dùng có thể nhận thông báo khi có người mở khóa, xem lịch sử truy cập, thay đổi mật khẩu từ xa, hoặc cấp quyền mở cửa tạm thời cho khách mà không cần có mặt tại nhà. Hơn nữa, 
+việc lưu trữ dữ liệu trên cloud sẽ giúp phân tích hành vi sử dụng và phát hiện các hoạt động bất thường, từ đó nâng cao khả năng bảo mật tổng thể của hệ thống.

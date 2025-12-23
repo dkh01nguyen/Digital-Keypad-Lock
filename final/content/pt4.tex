@@ -1,5 +1,13 @@
 \section{Hiện thực}
-Hệ thống khóa điện tử nhập số được thiết kế dựa trên mô hình máy trạng thái hữu hạn (Finite State Machine - FSM) với mười bốn trạng thái hoạt động riêng biệt. Máy trạng thái được triển khai thông qua ba module chính:
+\subsection{Sơ lược thiết kế}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth]{picture/digital_keypad_lock_schematic.png}
+    \caption{Lược đồ thiết kế ổ khóa}
+\end{figure}
+Các nút bấm được sử dụng trong lược đồ đóng vai trò mô phỏng cho các tác nhân từ người dùng (mở khóa vật lý, cảnh báo người dùng về trạng thái cửa...) và hỗ trợ nhập liệu.
+
+Hệ thống khóa điện tử nhập số được thiết kế dựa trên mô hình máy trạng thái hữu hạn (Finite State Machine - FSM) với nhiều trạng thái hoạt động riêng biệt. Máy trạng thái được triển khai thông qua ba module chính:
 \begin{itemize}
     \vspace{-5pt} \item  \textbf{Module xử lý đầu vào (input\_processing):} Đọc và phát hiện sự kiện từ bàn phím, nút nhấn và cảm biến.
     \vspace{-5pt} \item  \textbf{Module xử lý trạng thái (state\_processing):} Thực thi logic chuyển đổi giữa các trạng thái.
@@ -131,10 +139,18 @@ Hệ thống khóa điện tử nhập số được thiết kế dựa trên m�
  \end{itemize}
 \vspace{-10pt} \textbf{Chuyển trạng thái:} Sau 3 giây tự động chuyển về \texttt{LOCKED\_SLEEP}.
 
+\subsection{Hiện thực mã nguồn}
+Mã nguồn hiện thực của nhóm được truy cập qua đường dẫn sau: 
+
+\url{https://github.com/Nguyen-Hao-Khang/Digital-Keypad-Lock}
+
 \subsection{Sơ đồ máy trạng thái}
 Sơ đồ máy trạng thái có thể được truy cập qua đường dẫn sau: 
 
-\url{https://drive.google.com/file/d/1TCnZJqhzMKbLzAA-fE1OvaO3ULszKEpr/view}
+\noindent \url{https://drive.google.com/file/d/1TCnZJqhzMKbLzAA-fE1OvaO3ULszKEpr/view}
+và sử dụng trang \url{app.diagrams.net} để chỉnh sửa và xem chi tiết.
+
+Hình \ref{fig:fsm} dưới đây minh họa các điều kiện chuyển đổi và các trạng thái hoạt động của máy trạng thái:
 
 \begin{sidewaysfigure}
     \centering
